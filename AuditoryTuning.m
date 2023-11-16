@@ -53,7 +53,7 @@ if isempty(fieldnames(S))  % If settings file was an empty struct, populate stru
     S.GUI.ITI = 1; % Seconds after stimulus sampling for a response
     S.GUI.TrialsPerCondition = 10;
     S.GUI.NoiseSound = 0; % if 1, plays a white noise pulse on error. if 0, no sound is played.
-    S.GUI.NoiseSound.Style = 'checkbox';
+    S.GUIMeta.NoiseSound.Style = 'checkbox';
 
     S.GUI.MinFreq = 500; % Frequency of left cue
     S.GUI.MaxFreq = 20000; % Frequency of right cue
@@ -108,7 +108,7 @@ for iTrial = 1:MaxTrials
     StimulusSettings.SamplingRate = SF;
     StimulusSettings.Ramp = 0.01; %UPDATE HERE IF NO NOISE IS USED
     StimulusSettings.SignalDuration = S.GUI.SoundDuration;
-    StimulusSettings.SignalForm = 'LinearUpSweep';
+    StimulusSettings.SignalForm = 'LinearUpsweep';
     StimulusSettings.SignalMinFreq = FreqTrials(iTrial);
     StimulusSettings.SignalMaxFreq = FreqTrials(iTrial);
     StimulusSettings.SignalVolume = VolTrials(iTrial);
@@ -120,10 +120,10 @@ for iTrial = 1:MaxTrials
     
     sma = NewStateMatrix(); % Assemble state matrix
     
-    sma = AddSate(sma,'Name','Initialize', ...
+    sma = AddState(sma,'Name','Initialize', ...
         'Timer',0.1,...
         'StateChangeConditions',{'Tup','PlaySound'}, ...
-        'OutputAction',{'HiFi','*'});
+        'OutputAction',{'HiFi1','*'});
 
     sma = AddState(sma, 'Name', 'PlaySound', ...
         'Timer', S.GUI.SoundDuration,...
@@ -139,8 +139,8 @@ for iTrial = 1:MaxTrials
     RawEvents = RunStateMachine; % Run the trial and return events
     if ~isempty(fieldnames(RawEvents)) % If trial data was returned (i.e. if not final trial, interrupted by user)
         BpodSystem.Data = AddTrialEvents(BpodSystem.Data,RawEvents); % Computes trial events from raw data
-        BpodSystem.Data.TrialSettings(iTrial) = S; % Adds the settings used for the current trial to the Data struct (to be saved after the trial ends)
-        BpodSystem.Data.TrialTypes(iTrial) = TrialTypes(iTrial); % Adds the trial type of the current trial to data
+        %BpodSystem.Data.TrialSettings(iTrial) = S; % Adds the settings used for the current trial to the Data struct (to be saved after the trial ends)
+        %BpodSystem.Data.TrialTypes(iTrial) = TrialTypes(iTrial); % Adds the trial type of the current trial to data
         SaveBpodSessionData; % Saves the field BpodSystem.Data to the current data file
     end
     HandlePauseCondition; % Checks to see if the protocol is paused. If so, waits until user resumes.
