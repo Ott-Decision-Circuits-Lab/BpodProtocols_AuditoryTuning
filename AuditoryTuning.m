@@ -95,9 +95,9 @@ NoiseSound = GenerateWhiteNoise(SF, S.GUI.SoundDuration, 1, 2);
 
 H.DigitalAttenuation_dB = -15; % Set a comfortable listening level for most headphones (useful during protocol dev).
 
-Envelope = 1/(SF*0.001):1/(SF*0.001):1; % Define 1ms linear ramp envelope of amplitude coefficients, to apply at sound onset + in reverse at sound offset
-H.AMenvelope = Envelope;
-
+%Load SoundCal table
+SoundCal = BpodSystem.CalibrationTables.SoundCal;
+nocal=false;
 
 %% Main trial loop
 for iTrial = 1:MaxTrials
@@ -115,8 +115,63 @@ for iTrial = 1:MaxTrials
 
     sound = GenerateSignal(StimulusSettings);
     
+    sound = GenerateSineWave(SF, FreqTrials(iTrial), S.GUI.SoundDuration);
+    sound=[sound;sound];
+    %Error message if SoundCal table doesn't exist
+    if(isempty(SoundCal))
+        disp('Error: no sound calibration file specified. Sound not calibrated.');
+        nocal=true;
+    end
+    %Error message if SoundCal table doesn't include two speakers
+    if size(SoundCal,2)<2
+        disp('Error: no two speaker sound calibration file specified. Sound not calibrated.');
+        nocal=true;
+    end
+    for s=1:2 %loop over two speakers, left =1, right = 2
+        if nocal == false
+            %toneAtt = SoundCal(1,s).Coefficient; % basic implementation with auto generated cooeficient based on polyval of all attFactors for all freq > inaccurate
+            idx_toneAtt =  find(round(SoundCal(s).Table(:,1))==FreqTrials(iTrial));
+            if ~isempty(idx_toneAtt)
+                %if SoundCal has exact freq needed
+                idx_toneAtt =  find(round(SoundCal(s).Table(:,1))==FreqTrials(iTrial));
+                %closest_freq = interp1(SoundCal(s).Table(:,1), SoundCal(s).Table(:,1), FreqTrials(iTrial), 'nearest');
+                toneAtt = SoundCal(s).Table(idx_toneAtt, 2);
+            else
+                %disp("SoundCalibration is not using precise frequencies used in this protocol.");
+                %if SoundCal was calibrated in a range with equally spaced freqs
+                %d=sort(abs(FreqTrials(iTrial)-SoundCal(s).Table(:,1)));
+                %closest=find(abs(FreqTrials(iTrial)-SoundCal(s).Table(:,1))==d(1));
+                %sec_closest=find(abs(FreqTrials(iTrial)-SoundCal(s).Table(:,1))==d(2));
+
+                %freqVec = [SoundCal(s).Table(closest,1), SoundCal(s).Table(sec_closest,1)];
+                %toneAttVec = [SoundCal(s).Table(closest,2), SoundCal(s).Table(sec_closest,2)];
+
+                %toneAtt = interp1(freqVec, toneAttVec, FreqTrials(iTrial));
+                toneAtt = interp1(SoundCal(s).Table(:,1), SoundCal(s).Table(:,2), FreqTrials(iTrial), 'nearest');
+                if isnan(toneAtt)
+                    fprintf("Error: Test frequency %d Hz is outside calibration range.\n", FreqTrials(iTrial));
+                    return
+                end
+            end
+        else
+            disp("Error: no sound calibration.");
+            return
+        end
+        sound(s,:)=sound(s,:).*toneAtt; 
+    end
+    %% GenerateSignal Script using upsweeps instead
+    %sound = GenerateSignal(StimulusSettings);
+
+    %% Manual envelope should come before loading
+    %sound = sound.*Envelope';
+
+    %% Load sound to HiFi
     H.load(1, sound);
     H.load(2, NoiseSound);
+
+    %% HiFi built-in envelope function comes after loading sound
+    Envelope = 1/(SF*0.001):1/(SF*0.001):1; % Define 1ms linear ramp envelope of amplitude coefficients, to apply at sound onset + in reverse at sound offset
+    H.AMenvelope = Envelope;
     
     sma = NewStateMatrix(); % Assemble state matrix
     
