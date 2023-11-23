@@ -82,6 +82,8 @@ VolTrials = VolTrials(:)';
 MaxTrials = length(FreqTrials);
 
 BpodSystem.Data.TrialTypes = []; % The trial type of each trial completed will be added here.
+BpodSystem.Data.Custom.Frequency = [];
+BpodSystem.Data.Custom.Volume = [];
 
 %% Initialize plots
 BpodParameterGUI('init', S); % Initialize parameter GUI plugin
@@ -194,6 +196,8 @@ for iTrial = 1:MaxTrials
     RawEvents = RunStateMachine; % Run the trial and return events
     if ~isempty(fieldnames(RawEvents)) % If trial data was returned (i.e. if not final trial, interrupted by user)
         BpodSystem.Data = AddTrialEvents(BpodSystem.Data,RawEvents); % Computes trial events from raw data
+        BpodSystem.Data.Custom.Frequency(iTrial) = FreqTrials(iTrial);
+        BpodSystem.Data.Custom.Volume(iTrial) = VolTrials(iTrial);
         %BpodSystem.Data.TrialSettings(iTrial) = S; % Adds the settings used for the current trial to the Data struct (to be saved after the trial ends)
         %BpodSystem.Data.TrialTypes(iTrial) = TrialTypes(iTrial); % Adds the trial type of the current trial to data
         SaveBpodSessionData; % Saves the field BpodSystem.Data to the current data file
