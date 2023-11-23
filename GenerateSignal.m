@@ -58,7 +58,7 @@ SignalVolume=StimulusSettings.SignalVolume;
         signal(s,:)=signal(s,:).*att; %should the two speakers dB be added?
     end
     
-%put an envelope to avoide clicking sounds at beginning and end
+%put an envelope to avoid clicking sounds at beginning and end
 omega=(acos(sqrt(0.1))-acos(sqrt(0.9)))/(SignalRamp/pi*2); % This is for the envelope with Ramp duration duration
 t=0 : (1/SamplingRate) : pi/2/omega;
 t=t(1:(end-1));
