@@ -114,8 +114,6 @@ for iTrial = 1:MaxTrials
     StimulusSettings.SignalMinFreq = FreqTrials(iTrial);
     StimulusSettings.SignalMaxFreq = FreqTrials(iTrial);
     StimulusSettings.SignalVolume = VolTrials(iTrial);
-
-    sound = GenerateSignal(StimulusSettings);
     
     sound = GenerateSineWave(SF, FreqTrials(iTrial), S.GUI.SoundDuration);
     sound=[sound;sound];
