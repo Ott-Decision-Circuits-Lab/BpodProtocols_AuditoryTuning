@@ -6,16 +6,20 @@ Copyright (C) 2022 Sanworks LLC, Rochester, New York, USA
 
 ----------------------------------------------------------------------------
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, version 3.
+Authors: Dariya Kassybayeva, Torben Ott
+Description:
+Modified Bpod script that allows to play pure tones of frequencies in a
+specified range, repeated TrialsPerCondition repetition for each frequency.
+Volume can also be adjusted and same wavelength could be played in
+different volumes. 
+Example: frequencies will be played from 500 Hz to 20 000 Hz in steps of
+500 Hz with signal lasting 0.2 sec and intertrial interval of 1 sec. This
+sequence will be repeated 10 times to yield 10 repetitions per each
+frequency. Volume is set as a constant to 60 dB. This results in 40
+frequencies per each run and 400 trials overall. If different set of
+volumes is to be played, the number of the trials will increase with 10
+repetitions of each frequency and each volume pair. 
 
-This program is distributed  WITHOUT ANY WARRANTY and without even the
-implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %}
 function AuditoryTuning
 % This protocol demonstrates a 2AFC task using the HiFi module to generate sound stimuli.
@@ -95,7 +99,7 @@ H.SamplingRate = SF;
 % White Noise trials might be added 
 NoiseSound = GenerateWhiteNoise(SF, S.GUI.SoundDuration, 1, 2);
 
-H.DigitalAttenuation_dB = -15; % Set a comfortable listening level for most headphones (useful during protocol dev).
+H.DigitalAttenuation_dB = -7; % Set a comfortable listening level for most headphones (useful during protocol dev).
 
 %Load SoundCal table
 SoundCal = BpodSystem.CalibrationTables.SoundCal;
@@ -114,8 +118,6 @@ for iTrial = 1:MaxTrials
     StimulusSettings.SignalMinFreq = FreqTrials(iTrial);
     StimulusSettings.SignalMaxFreq = FreqTrials(iTrial);
     StimulusSettings.SignalVolume = VolTrials(iTrial);
-
-    sound = GenerateSignal(StimulusSettings);
     
     sound = GenerateSineWave(SF, FreqTrials(iTrial), S.GUI.SoundDuration);
     sound=[sound;sound];
@@ -150,6 +152,7 @@ for iTrial = 1:MaxTrials
 
                 %toneAtt = interp1(freqVec, toneAttVec, FreqTrials(iTrial));
                 toneAtt = interp1(SoundCal(s).Table(:,1), SoundCal(s).Table(:,2), FreqTrials(iTrial), 'nearest');
+                disp("Interpolation")
                 if isnan(toneAtt)
                     fprintf("Error: Test frequency %d Hz is outside calibration range.\n", FreqTrials(iTrial));
                     return
