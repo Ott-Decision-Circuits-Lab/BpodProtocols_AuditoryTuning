@@ -54,8 +54,8 @@ S = BpodSystem.ProtocolSettings; % Load settings chosen in launch manager into c
 if isempty(fieldnames(S))  % If settings file was an empty struct, populate struct with default settings
 
     S.GUI.SoundDuration = 0.2; % Duration of sound (s)
-    S.GUI.ITI = 1; % Seconds after stimulus sampling for a response
-    S.GUI.TrialsPerCondition = 10;
+    S.GUI.ITI = 1.5; % Seconds after stimulus sampling for a response
+    S.GUI.TrialsPerCondition = 20;
     S.GUI.NoiseSound = 0; % if 1, plays a white noise pulse on error. if 0, no sound is played.
     S.GUIMeta.NoiseSound.Style = 'checkbox';
 
