@@ -6,8 +6,8 @@
 %    load(fullfile(myDir, baseFileName), 'SessionData');
 %    FixingDataCustomAuditoryTuning(SessionData, baseFileName, myDir);
 %  end
-path = "O:\data\13\bpod_session\20231123_212637";
-filename = "13_AuditoryTuning_20231123_212637.mat";
+path = "O:\data\12\bpod_session\20231121_134911";
+filename = "12_AuditoryTuning_20231121_134911.mat";
 load(fullfile(path, filename), "SessionData");
 FixingDataCustomAuditoryTuning(SessionData, filename, path)
 function FixingDataCustomAuditoryTuning(SessionData, filename, path)
