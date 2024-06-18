@@ -47,15 +47,16 @@ global BpodSystem
 %% Assert HiFi module is present + USB-paired (via USB button on console GUI)
 BpodSystem.assertModule('HiFi', 1); % The second argument (1) indicates that the HiFi module must be paired with its USB serial port
 % Create an instance of the HiFi module
+%load('C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files\SoundCalibrationBackUp\Currently_Working_HiFi_Object.mat', 'H');
 H = BpodHiFi(BpodSystem.ModuleUSB.HiFi1); % The argument is the name of the HiFi module's USB serial port (e.g. COM3)
 
 %% Define parameters
 S = BpodSystem.ProtocolSettings; % Load settings chosen in launch manager into current workspace as a struct called S
 if isempty(fieldnames(S))  % If settings file was an empty struct, populate struct with default settings
 
-    S.GUI.SoundDuration = 0.2; % Duration of sound (s)
-    S.GUI.ITI = 1.5; % Seconds after stimulus sampling for a response
-    S.GUI.TrialsPerCondition = 20;
+    S.GUI.SoundDuration = 0.1; % Duration of sound (s)
+    S.GUI.ITI = 1; % Seconds after stimulus sampling for a response
+    S.GUI.TrialsPerCondition = 15;
     S.GUI.NoiseSound = 0; % if 1, plays a white noise pulse on error. if 0, no sound is played.
     S.GUIMeta.NoiseSound.Style = 'checkbox';
 
@@ -99,7 +100,7 @@ H.SamplingRate = SF;
 % White Noise trials might be added 
 NoiseSound = GenerateWhiteNoise(SF, S.GUI.SoundDuration, 1, 2);
 
-H.DigitalAttenuation_dB = -7; % Set a comfortable listening level for most headphones (useful during protocol dev).
+H.DigitalAttenuation_dB = -50; % Set after SF
 
 %Load SoundCal table
 SoundCal = BpodSystem.CalibrationTables.SoundCal;
@@ -111,27 +112,28 @@ for iTrial = 1:MaxTrials
     S = BpodParameterGUI('sync', S); % Sync parameters with BpodParameterGUI plugin
 
     %% abbreviate variable names and clip impossible values for better handling
-    StimulusSettings.SamplingRate = SF;
-    StimulusSettings.Ramp = 0.01; %UPDATE HERE IF NO NOISE IS USED
-    StimulusSettings.SignalDuration = S.GUI.SoundDuration;
-    StimulusSettings.SignalForm = 'LinearUpsweep';
-    StimulusSettings.SignalMinFreq = FreqTrials(iTrial);
-    StimulusSettings.SignalMaxFreq = FreqTrials(iTrial);
-    StimulusSettings.SignalVolume = VolTrials(iTrial);
+%     StimulusSettings.SamplingRate = SF;
+%     StimulusSettings.Ramp = 0.01; %UPDATE HERE IF NO NOISE IS USED
+%     StimulusSettings.SignalDuration = S.GUI.SoundDuration;
+%     StimulusSettings.SignalForm = 'LinearUpsweep';
+%     StimulusSettings.SignalMinFreq = FreqTrials(iTrial);
+%     StimulusSettings.SignalMaxFreq = FreqTrials(iTrial);
+%     StimulusSettings.SignalVolume = VolTrials(iTrial);
     
     sound = GenerateSineWave(SF, FreqTrials(iTrial), S.GUI.SoundDuration);
     sound=[sound;sound];
+    %H.DigitalAttenuation_dB
     %Error message if SoundCal table doesn't exist
     if(isempty(SoundCal))
         disp('Error: no sound calibration file specified. Sound not calibrated.');
         nocal=true;
     end
-    %Error message if SoundCal table doesn't include two speakers
-    if size(SoundCal,2)<2
-        disp('Error: no two speaker sound calibration file specified. Sound not calibrated.');
-        nocal=true;
-    end
-    for s=1:2 %loop over two speakers, left =1, right = 2
+%     %Error message if SoundCal table doesn't include two speakers
+%     if size(SoundCal,2)<2
+%         disp('Error: no two speaker sound calibration file specified. Sound not calibrated.');
+%         nocal=true;
+%     end
+    for s=1:1 %loop over two speakers, left =1, right = 2
         if nocal == false
             %toneAtt = SoundCal(1,s).Coefficient; % basic implementation with auto generated cooeficient based on polyval of all attFactors for all freq > inaccurate
             idx_toneAtt =  find(round(SoundCal(s).Table(:,1))==FreqTrials(iTrial));
@@ -152,7 +154,6 @@ for iTrial = 1:MaxTrials
 
                 %toneAtt = interp1(freqVec, toneAttVec, FreqTrials(iTrial));
                 toneAtt = interp1(SoundCal(s).Table(:,1), SoundCal(s).Table(:,2), FreqTrials(iTrial), 'nearest');
-                disp("Interpolation")
                 if isnan(toneAtt)
                     fprintf("Error: Test frequency %d Hz is outside calibration range.\n", FreqTrials(iTrial));
                     return
@@ -169,10 +170,10 @@ for iTrial = 1:MaxTrials
 
     %% Manual envelope should come before loading
     %sound = sound.*Envelope';
-
+    sound(2,:) = 0; %only left speaker playing
     %% Load sound to HiFi
-    H.load(1, sound);
-    H.load(2, NoiseSound);
+    H.load(1, sound); %only Left
+    %H.load(2, NoiseSound);
 
     %% HiFi built-in envelope function comes after loading sound
     Envelope = 1/(SF*0.001):1/(SF*0.001):1; % Define 1ms linear ramp envelope of amplitude coefficients, to apply at sound onset + in reverse at sound offset
