@@ -53,8 +53,8 @@ H = BpodHiFi(BpodSystem.ModuleUSB.HiFi1); % The argument is the name of the HiFi
 S = BpodSystem.ProtocolSettings; % Load settings chosen in launch manager into current workspace as a struct called S
 if isempty(fieldnames(S))  % If settings file was an empty struct, populate struct with default settings
 
-    S.GUI.SoundDuration = 0.2; % Duration of sound (s)
-    S.GUI.ITI = 1.5; % Seconds after stimulus sampling for a response
+    S.GUI.SoundDuration = 0.05; % Duration of sound (s) > 50 ms
+    S.GUI.ITI = [0.8 1.5 1]; % Seconds after stimulus sampling for a response 0.8-1.5 sec TruncExp
     S.GUI.TrialsPerCondition = 20;
     S.GUI.NoiseSound = 0; % if 1, plays a white noise pulse on error. if 0, no sound is played.
     S.GUIMeta.NoiseSound.Style = 'checkbox';
@@ -63,8 +63,8 @@ if isempty(fieldnames(S))  % If settings file was an empty struct, populate stru
     S.GUI.MaxFreq = 20000; % Frequency of right cue
     S.GUI.StepFreq = 500;
 
-    S.GUI.MinVolume = 60; 
-    S.GUI.MaxVolume = 60;
+    S.GUI.MinVolume = 70;  
+    S.GUI.MaxVolume = 70;
     S.GUI.StepVolume = 10;
 
     S.GUIPanels.Sound = {'SoundDuration', 'ITI', 'TrialsPerCondition','NoiseSound'};
@@ -99,7 +99,7 @@ H.SamplingRate = SF;
 % White Noise trials might be added 
 NoiseSound = GenerateWhiteNoise(SF, S.GUI.SoundDuration, 1, 2);
 
-H.DigitalAttenuation_dB = -7; % Set a comfortable listening level for most headphones (useful during protocol dev).
+H.DigitalAttenuation_dB = -45; % Set a comfortable listening level for most headphones (useful during protocol dev).
 
 %Load SoundCal table
 SoundCal = BpodSystem.CalibrationTables.SoundCal;
@@ -118,6 +118,7 @@ for iTrial = 1:MaxTrials
     StimulusSettings.SignalMinFreq = FreqTrials(iTrial);
     StimulusSettings.SignalMaxFreq = FreqTrials(iTrial);
     StimulusSettings.SignalVolume = VolTrials(iTrial);
+    StimulusSettings.ITI = TruncatedExponential(S.GUI.ITI);
     
     sound = GenerateSineWave(SF, FreqTrials(iTrial), S.GUI.SoundDuration);
     sound=[sound;sound];
@@ -127,11 +128,11 @@ for iTrial = 1:MaxTrials
         nocal=true;
     end
     %Error message if SoundCal table doesn't include two speakers
-    if size(SoundCal,2)<2
-        disp('Error: no two speaker sound calibration file specified. Sound not calibrated.');
+    if size(SoundCal,2)>2
+        disp('Error: more than one speaker sound calibration file specified. Sound not calibrated.');
         nocal=true;
     end
-    for s=1:2 %loop over two speakers, left =1, right = 2
+    for s=1:1 %loop over two speakers, left =1, right = 2
         if nocal == false
             %toneAtt = SoundCal(1,s).Coefficient; % basic implementation with auto generated cooeficient based on polyval of all attFactors for all freq > inaccurate
             idx_toneAtt =  find(round(SoundCal(s).Table(:,1))==FreqTrials(iTrial));
