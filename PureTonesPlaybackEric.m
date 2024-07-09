@@ -1,10 +1,12 @@
 %For Testing SoundCalibration 
 %Notice this script does not include Envelope or Ramp
+
 H = BpodHiFi(BpodSystem.ModuleUSB.HiFi1);
 samplingRate = 192000;
 signalDuration = 3;
 SoundCal = BpodSystem.CalibrationTables.SoundCal;
 nocal=false;
+
 for i=1:length(SoundCal(1).Table(:, 1))
 frequency = SoundCal(1).Table(i, 1);
 attenFactL = SoundCal(1).Table(i, 2);
