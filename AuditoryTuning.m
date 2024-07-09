@@ -125,7 +125,7 @@ for iTrial = 1:MaxTrials
         nocal=true;
     end
     %Error message if SoundCal table doesn't include two speakers
-    if size(SoundCal,2)<2
+    if size(SoundCal,2)>2
         disp('Error: no two speaker sound calibration file specified. Sound not calibrated.');
         nocal=true;
     end
