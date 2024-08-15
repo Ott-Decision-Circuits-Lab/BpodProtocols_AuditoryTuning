@@ -19,6 +19,7 @@ frequency. Volume is set as a constant to 60 dB. This results in 40
 frequencies per each run and 400 trials overall. If different set of
 volumes is to be played, the number of the trials will increase with 10
 repetitions of each frequency and each volume pair. 
+Modified: 2024-08-15 17:06
 
 %}
 function AuditoryTuning
@@ -47,25 +48,24 @@ global BpodSystem
 %% Assert HiFi module is present + USB-paired (via USB button on console GUI)
 BpodSystem.assertModule('HiFi', 1); % The second argument (1) indicates that the HiFi module must be paired with its USB serial port
 % Create an instance of the HiFi module
-%load('C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files\SoundCalibrationBackUp\Currently_Working_HiFi_Object.mat', 'H');
 H = BpodHiFi(BpodSystem.ModuleUSB.HiFi1); % The argument is the name of the HiFi module's USB serial port (e.g. COM3)
 
 %% Define parameters
 S = BpodSystem.ProtocolSettings; % Load settings chosen in launch manager into current workspace as a struct called S
 if isempty(fieldnames(S))  % If settings file was an empty struct, populate struct with default settings
 
-    S.GUI.SoundDuration = 0.1; % Duration of sound (s)
-    S.GUI.ITI = 1; % Seconds after stimulus sampling for a response
-    S.GUI.TrialsPerCondition = 15;
-    S.GUI.NoiseSound = 0; % if 1, plays a white noise pulse on error. if 0, no sound is played.
+    S.GUI.SoundDuration = 0.05; % Duration of sound (s) > 50 ms TODO to be added into values in bpod file saved
+    S.GUI.ITI = TruncatedExponential(0.8, 1.5, 1); % Seconds after stimulus sampling for a response 0.8-1.5 sec TruncExp
+    S.GUI.TrialsPerCondition = 20;
+    S.GUI.NoiseSound = 1; % if 1, plays a white noise pulse on error. if 0, no sound is played.
     S.GUIMeta.NoiseSound.Style = 'checkbox';
 
     S.GUI.MinFreq = 500; % Frequency of left cue
     S.GUI.MaxFreq = 20000; % Frequency of right cue
     S.GUI.StepFreq = 500;
 
-    S.GUI.MinVolume = 60; 
-    S.GUI.MaxVolume = 60;
+    S.GUI.MinVolume = 80;  
+    S.GUI.MaxVolume = 80;
     S.GUI.StepVolume = 10;
 
     S.GUIPanels.Sound = {'SoundDuration', 'ITI', 'TrialsPerCondition','NoiseSound'};
@@ -96,15 +96,17 @@ BpodParameterGUI('init', S); % Initialize parameter GUI plugin
 %% Define stimuli and send to analog module
 SF = 192000; % Use max supported sampling rate
 H.SamplingRate = SF;
-
-% White Noise trials might be added 
-NoiseSound = GenerateWhiteNoise(SF, S.GUI.SoundDuration, 1, 2);
-
-H.DigitalAttenuation_dB = -50; % Set after SF
+H.DigitalAttenuation_dB = -10; % Set a comfortable listening level for most headphones (useful during protocol dev).
 
 %Load SoundCal table
 SoundCal = BpodSystem.CalibrationTables.SoundCal;
 nocal=false;
+
+%% Generate Upsweeps signal 
+% GenerateSineSweep(samplingRate, startFreq, endFreq, duration)
+UpsweepSound = GenerateSineSweep(SF, 10000, 15000, 0.1);
+%% Generate noise signal
+NoiseSound = GenerateWhiteNoise(SF, S.GUI.SoundDuration, 1, 2);
 
 %% Main trial loop
 for iTrial = 1:MaxTrials
@@ -112,28 +114,33 @@ for iTrial = 1:MaxTrials
     S = BpodParameterGUI('sync', S); % Sync parameters with BpodParameterGUI plugin
 
     %% abbreviate variable names and clip impossible values for better handling
-%     StimulusSettings.SamplingRate = SF;
-%     StimulusSettings.Ramp = 0.01; %UPDATE HERE IF NO NOISE IS USED
-%     StimulusSettings.SignalDuration = S.GUI.SoundDuration;
-%     StimulusSettings.SignalForm = 'LinearUpsweep';
-%     StimulusSettings.SignalMinFreq = FreqTrials(iTrial);
-%     StimulusSettings.SignalMaxFreq = FreqTrials(iTrial);
-%     StimulusSettings.SignalVolume = VolTrials(iTrial);
+    StimulusSettings.SamplingRate = SF;
+    StimulusSettings.Ramp = 0.01; %UPDATE HERE IF NO NOISE IS USED
+    StimulusSettings.SignalDuration = S.GUI.SoundDuration;
+    StimulusSettings.SignalForm = 'LinearUpsweep';
+    StimulusSettings.SignalMinFreq = FreqTrials(iTrial);
+    StimulusSettings.SignalMaxFreq = FreqTrials(iTrial);
+    StimulusSettings.SignalVolume = VolTrials(iTrial);
+    StimulusSettings.ITI = S.GUI.ITI;
     
+    %% Generate pure tone signal
     sound = GenerateSineWave(SF, FreqTrials(iTrial), S.GUI.SoundDuration);
-    sound=[sound;sound];
-    %H.DigitalAttenuation_dB
+
+    sound=[sound;sound]; 
+    UpsweepSound = [UpsweepSound; UpsweepSound];
+    NoiseSound = [NoiseSound; NoiseSound];
+
     %Error message if SoundCal table doesn't exist
     if(isempty(SoundCal))
         disp('Error: no sound calibration file specified. Sound not calibrated.');
         nocal=true;
     end
-%     %Error message if SoundCal table doesn't include two speakers
-%     if size(SoundCal,2)<2
-%         disp('Error: no two speaker sound calibration file specified. Sound not calibrated.');
-%         nocal=true;
-%     end
-    for s=1:1 %loop over two speakers, left =1, right = 2
+    %Error message if SoundCal table doesn't include two speakers
+    if size(SoundCal,2)>2
+        disp('Error: more than one speaker sound calibration file specified. Sound not calibrated.');
+        nocal=true;
+    end
+    for s=1:2 %loop over two speakers, left =1, right = 2
         if nocal == false
             %toneAtt = SoundCal(1,s).Coefficient; % basic implementation with auto generated cooeficient based on polyval of all attFactors for all freq > inaccurate
             idx_toneAtt =  find(round(SoundCal(s).Table(:,1))==FreqTrials(iTrial));
@@ -154,6 +161,7 @@ for iTrial = 1:MaxTrials
 
                 %toneAtt = interp1(freqVec, toneAttVec, FreqTrials(iTrial));
                 toneAtt = interp1(SoundCal(s).Table(:,1), SoundCal(s).Table(:,2), FreqTrials(iTrial), 'nearest');
+                disp("Interpolation")
                 if isnan(toneAtt)
                     fprintf("Error: Test frequency %d Hz is outside calibration range.\n", FreqTrials(iTrial));
                     return
@@ -163,21 +171,30 @@ for iTrial = 1:MaxTrials
             disp("Error: no sound calibration.");
             return
         end
-        sound(s,:)=sound(s,:).*toneAtt; 
+        sound(s,:)=sound(s,:).*toneAtt;  
+        UpsweepSound(s,:)=UpsweepSound(s,:).*toneAtt; 
+        NoiseSound(s,:)=NoiseSound(s,:).*toneAtt; 
     end
+   
     %% GenerateSignal Script using upsweeps instead
     %sound = GenerateSignal(StimulusSettings);
 
     %% Manual envelope should come before loading
-    %sound = sound.*Envelope';
-    sound(2,:) = 0; %only left speaker playing
+    % GenerateSinWave includes envelope functions,
+    % GenerateInterpolatedSignal will require manual envelope inside the function 
+
     %% Load sound to HiFi
-    H.load(1, sound); %only Left
-    %H.load(2, NoiseSound);
+    H.load(1, sound);
+    H.load(2, UpsweepSound) % plays upsweeps and noise between every pure tone 
+    H.load(3, NoiseSound);
 
     %% HiFi built-in envelope function comes after loading sound
     Envelope = 1/(SF*0.001):1/(SF*0.001):1; % Define 1ms linear ramp envelope of amplitude coefficients, to apply at sound onset + in reverse at sound offset
     H.AMenvelope = Envelope;
+
+    %% load sounds that already include an Envelope after
+    % H.load(2, UpsweepSound)
+    % H.load(3, NoiseSound);
     
     sma = NewStateMatrix(); % Assemble state matrix
     
