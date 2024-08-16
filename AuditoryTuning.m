@@ -106,7 +106,7 @@ nocal=false;
 % GenerateSineSweep(samplingRate, startFreq, endFreq, duration)
 UpsweepSound = GenerateSineSweep(SF, 10000, 15000, 0.1);
 %% Generate noise signal
-NoiseSound = GenerateWhiteNoise(SF, S.GUI.SoundDuration, 1, 2);
+NoiseSound = GenerateWhiteNoise(SF, S.GUI.SoundDuration, 1, 1);
 
 %% Main trial loop
 for iTrial = 1:MaxTrials
@@ -127,8 +127,8 @@ for iTrial = 1:MaxTrials
     sound = GenerateSineWave(SF, FreqTrials(iTrial), S.GUI.SoundDuration);
 
     sound=[sound;sound]; 
-    UpsweepSound = [UpsweepSound; UpsweepSound];
-    NoiseSound = [NoiseSound; NoiseSound];
+    %UpsweepSound = [UpsweepSound; UpsweepSound];
+    %NoiseSound = [NoiseSound; NoiseSound];
 
     %Error message if SoundCal table doesn't exist
     if(isempty(SoundCal))
@@ -143,12 +143,12 @@ for iTrial = 1:MaxTrials
     for s=1:2 %loop over two speakers, left =1, right = 2
         if nocal == false
             %toneAtt = SoundCal(1,s).Coefficient; % basic implementation with auto generated cooeficient based on polyval of all attFactors for all freq > inaccurate
-            idx_toneAtt =  find(round(SoundCal(s).Table(:,1))==FreqTrials(iTrial));
+            idx_toneAtt =  find(round(SoundCal.Table(:,1))==FreqTrials(iTrial));
             if ~isempty(idx_toneAtt)
                 %if SoundCal has exact freq needed
-                idx_toneAtt =  find(round(SoundCal(s).Table(:,1))==FreqTrials(iTrial));
+                idx_toneAtt =  find(round(SoundCal.Table(:,1))==FreqTrials(iTrial));
                 %closest_freq = interp1(SoundCal(s).Table(:,1), SoundCal(s).Table(:,1), FreqTrials(iTrial), 'nearest');
-                toneAtt = SoundCal(s).Table(idx_toneAtt, 2);
+                toneAtt = SoundCal.Table(idx_toneAtt, 2);
             else
                 %disp("SoundCalibration is not using precise frequencies used in this protocol.");
                 %if SoundCal was calibrated in a range with equally spaced freqs
@@ -160,7 +160,7 @@ for iTrial = 1:MaxTrials
                 %toneAttVec = [SoundCal(s).Table(closest,2), SoundCal(s).Table(sec_closest,2)];
 
                 %toneAtt = interp1(freqVec, toneAttVec, FreqTrials(iTrial));
-                toneAtt = interp1(SoundCal(s).Table(:,1), SoundCal(s).Table(:,2), FreqTrials(iTrial), 'nearest');
+                toneAtt = interp1(SoundCal.Table(:,1), SoundCal.Table(:,2), FreqTrials(iTrial), 'nearest');
                 disp("Interpolation")
                 if isnan(toneAtt)
                     fprintf("Error: Test frequency %d Hz is outside calibration range.\n", FreqTrials(iTrial));
@@ -172,10 +172,11 @@ for iTrial = 1:MaxTrials
             return
         end
         sound(s,:)=sound(s,:).*toneAtt;  
-        UpsweepSound(s,:)=UpsweepSound(s,:).*toneAtt; 
-        NoiseSound(s,:)=NoiseSound(s,:).*toneAtt; 
+%         UpsweepSound(s,:)=UpsweepSound(s,:).*toneAtt; 
+%         NoiseSound(s,:)=NoiseSound(s,:).*toneAtt; 
     end
-   
+    UpsweepSound(:)=UpsweepSound(:).*toneAtt; 
+    NoiseSound(:)=NoiseSound(:).*toneAtt; 
     %% GenerateSignal Script using upsweeps instead
     %sound = GenerateSignal(StimulusSettings);
 
@@ -185,8 +186,9 @@ for iTrial = 1:MaxTrials
 
     %% Load sound to HiFi
     H.load(1, sound);
-    H.load(2, UpsweepSound) % plays upsweeps and noise between every pure tone 
-    H.load(3, NoiseSound);
+    disp(length(sound));
+    H.load(2, UpsweepSound(1, :)) % plays upsweeps and noise between every pure tone 
+    H.load(3, NoiseSound(1, :));
 
     %% HiFi built-in envelope function comes after loading sound
     Envelope = 1/(SF*0.001):1/(SF*0.001):1; % Define 1ms linear ramp envelope of amplitude coefficients, to apply at sound onset + in reverse at sound offset
