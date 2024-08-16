@@ -77,7 +77,7 @@ SignalVolume = StimulusSettings.SignalVolume;
     %end
 
 % For playing only L or R channel when signal=[signal;signal];
-signal(2, :) = zeros(1, length(signal)); % For playing only L channel
+signal(2, :) = zeros(1, length(signal)); % For playing only L channel > make 2 right channel zero
 %signal(1, :) = zeros(1, length(signal)); % For playing only R channel
 
 %put an envelope to avoide clicking sounds at beginning and end

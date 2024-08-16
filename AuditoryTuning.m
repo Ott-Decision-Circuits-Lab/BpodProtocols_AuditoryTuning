@@ -64,7 +64,7 @@ if isempty(fieldnames(S))  % If settings file was an empty struct, populate stru
     S.GUI.MaxFreq = 20000; % Frequency of right cue
     S.GUI.StepFreq = 500;
 
-    S.GUI.MinVolume = 80;  
+    S.GUI.MinVolume = 80;
     S.GUI.MaxVolume = 80;
     S.GUI.StepVolume = 10;
 
@@ -102,7 +102,7 @@ H.DigitalAttenuation_dB = -10; % Set a comfortable listening level for most head
 SoundCal = BpodSystem.CalibrationTables.SoundCal;
 nocal=false;
 
-%% Generate Upsweeps signal 
+%% Generate Upsweeps signal
 % GenerateSineSweep(samplingRate, startFreq, endFreq, duration)
 UpsweepSound = GenerateSineSweep(SF, 10000, 15000, 0.1);
 %% Generate noise signal
@@ -122,11 +122,11 @@ for iTrial = 1:MaxTrials
     StimulusSettings.SignalMaxFreq = FreqTrials(iTrial);
     StimulusSettings.SignalVolume = VolTrials(iTrial);
     StimulusSettings.ITI = S.GUI.ITI;
-    
+
     %% Generate pure tone signal
     sound = GenerateSineWave(SF, FreqTrials(iTrial), S.GUI.SoundDuration);
 
-    sound=[sound;sound]; 
+    sound=[sound;sound];
     %UpsweepSound = [UpsweepSound; UpsweepSound];
     %NoiseSound = [NoiseSound; NoiseSound];
 
@@ -140,54 +140,56 @@ for iTrial = 1:MaxTrials
         disp('Error: more than one speaker sound calibration file specified. Sound not calibrated.');
         nocal=true;
     end
-    for s=1:2 %loop over two speakers, left =1, right = 2
-        if nocal == false
-            %toneAtt = SoundCal(1,s).Coefficient; % basic implementation with auto generated cooeficient based on polyval of all attFactors for all freq > inaccurate
+
+    if nocal == false
+        %toneAtt = SoundCal(1,s).Coefficient; % basic implementation with auto generated cooeficient based on polyval of all attFactors for all freq > inaccurate
+        idx_toneAtt =  find(round(SoundCal.Table(:,1))==FreqTrials(iTrial));
+        if ~isempty(idx_toneAtt)
+            %if SoundCal has exact freq needed
             idx_toneAtt =  find(round(SoundCal.Table(:,1))==FreqTrials(iTrial));
-            if ~isempty(idx_toneAtt)
-                %if SoundCal has exact freq needed
-                idx_toneAtt =  find(round(SoundCal.Table(:,1))==FreqTrials(iTrial));
-                %closest_freq = interp1(SoundCal(s).Table(:,1), SoundCal(s).Table(:,1), FreqTrials(iTrial), 'nearest');
-                toneAtt = SoundCal.Table(idx_toneAtt, 2);
-            else
-                %disp("SoundCalibration is not using precise frequencies used in this protocol.");
-                %if SoundCal was calibrated in a range with equally spaced freqs
-                %d=sort(abs(FreqTrials(iTrial)-SoundCal(s).Table(:,1)));
-                %closest=find(abs(FreqTrials(iTrial)-SoundCal(s).Table(:,1))==d(1));
-                %sec_closest=find(abs(FreqTrials(iTrial)-SoundCal(s).Table(:,1))==d(2));
-
-                %freqVec = [SoundCal(s).Table(closest,1), SoundCal(s).Table(sec_closest,1)];
-                %toneAttVec = [SoundCal(s).Table(closest,2), SoundCal(s).Table(sec_closest,2)];
-
-                %toneAtt = interp1(freqVec, toneAttVec, FreqTrials(iTrial));
-                toneAtt = interp1(SoundCal.Table(:,1), SoundCal.Table(:,2), FreqTrials(iTrial), 'nearest');
-                disp("Interpolation")
-                if isnan(toneAtt)
-                    fprintf("Error: Test frequency %d Hz is outside calibration range.\n", FreqTrials(iTrial));
-                    return
-                end
-            end
+            %closest_freq = interp1(SoundCal(s).Table(:,1), SoundCal(s).Table(:,1), FreqTrials(iTrial), 'nearest');
+            toneAtt = SoundCal.Table(idx_toneAtt, 2);
         else
-            disp("Error: no sound calibration.");
-            return
+            %disp("SoundCalibration is not using precise frequencies used in this protocol.");
+            %if SoundCal was calibrated in a range with equally spaced freqs
+            %d=sort(abs(FreqTrials(iTrial)-SoundCal(s).Table(:,1)));
+            %closest=find(abs(FreqTrials(iTrial)-SoundCal(s).Table(:,1))==d(1));
+            %sec_closest=find(abs(FreqTrials(iTrial)-SoundCal(s).Table(:,1))==d(2));
+
+            %freqVec = [SoundCal(s).Table(closest,1), SoundCal(s).Table(sec_closest,1)];
+            %toneAttVec = [SoundCal(s).Table(closest,2), SoundCal(s).Table(sec_closest,2)];
+
+            %toneAtt = interp1(freqVec, toneAttVec, FreqTrials(iTrial));
+            toneAtt = interp1(SoundCal.Table(:,1), SoundCal.Table(:,2), FreqTrials(iTrial), 'nearest');
+            disp("Interpolation")
+            if isnan(toneAtt)
+                fprintf("Error: Test frequency %d Hz is outside calibration range.\n", FreqTrials(iTrial));
+                return
+            end
         end
-        sound(s,:)=sound(s,:).*toneAtt;  
-%         UpsweepSound(s,:)=UpsweepSound(s,:).*toneAtt; 
-%         NoiseSound(s,:)=NoiseSound(s,:).*toneAtt; 
+    else
+        disp("Error: no sound calibration.");
+        return
     end
-    UpsweepSound(:)=UpsweepSound(:).*toneAtt; 
-    NoiseSound(:)=NoiseSound(:).*toneAtt; 
+    sound(1,:)=sound(1,:).*toneAtt;
+
+    % For playing only L or R channel when signal=[signal;signal];
+    signal(2, :) = zeros(1, length(signal)); % For playing only L channel
+    %signal(1, :) = zeros(1, length(signal)); % For playing only R channel
+
+    UpsweepSound(:)=UpsweepSound(:).*toneAtt;
+    NoiseSound(:)=NoiseSound(:).*toneAtt;
     %% GenerateSignal Script using upsweeps instead
     %sound = GenerateSignal(StimulusSettings);
 
     %% Manual envelope should come before loading
     % GenerateSinWave includes envelope functions,
-    % GenerateInterpolatedSignal will require manual envelope inside the function 
+    % GenerateInterpolatedSignal will require manual envelope inside the function
 
     %% Load sound to HiFi
     H.load(1, sound);
     disp(length(sound));
-    H.load(2, UpsweepSound(1, :)) % plays upsweeps and noise between every pure tone 
+    H.load(2, UpsweepSound(1, :)) % plays upsweeps and noise between every pure tone
     H.load(3, NoiseSound(1, :));
 
     %% HiFi built-in envelope function comes after loading sound
@@ -197,9 +199,9 @@ for iTrial = 1:MaxTrials
     %% load sounds that already include an Envelope after
     % H.load(2, UpsweepSound)
     % H.load(3, NoiseSound);
-    
+
     sma = NewStateMatrix(); % Assemble state matrix
-    
+
     sma = AddState(sma,'Name','Initialize', ...
         'Timer',0.1,...
         'StateChangeConditions',{'Tup','PlaySound'}, ...
