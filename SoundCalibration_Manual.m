@@ -34,7 +34,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 % A sample-wise attentuation envelope for pure frequency sweep waveforms can be calculated
 % with toneAtt = polyval(SoundCal(1,s).Coefficient,freqvec) where freqvec contains the instantaneous frequency at each sample.
 %% Example:
-% SoundCal = SoundCalibration_Manual([500 20000], 500, 60, 1, -35)
+% SoundCal = SoundCalibration_Manual([500 20000], 500, 60, 1, -10)
 % save("SoundCalibration20231124.mat", "SoundCal")
 
 function SoundCal = SoundCalibration_Manual(FreqRange, FreqStep, dbSPL_Target, nSpeakers, digAtt)
@@ -53,7 +53,7 @@ H.AMenvelope = 1/192:1/192:1;
 FreqRangeError = 0;
 H.DigitalAttenuation_dB = digAtt; %digital attenuation factor set before firing rate will result in dig att 0 dB no matter the set value
 nTriesPerFrequency = 15;
-toneDuration = 1; % Seconds
+toneDuration = 3; % Seconds
 AcceptableDifference_dBSPL = 0.5;
 
 if (length(FreqRange) ~= 2) || (sum(FreqRange < 20) > 0) || (sum(FreqRange > 100000) > 0)

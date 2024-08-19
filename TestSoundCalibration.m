@@ -8,10 +8,10 @@
 
 %start up HiFi module and set general settings
 % needs cleared/restarted HiFi module
-SoundCal = SoundCalibration_Manual([19000,20000],500,60,1,-45);
+SoundCal = SoundCalibration_Manual([500,20000],500,90,1,-10);
 
 %% save file
-file_name =  'SoundCalibration20240118.mat';
+file_name =  'SoundCalibration20240819digAttminus10target90dBday1.mat';
 file_path = fullfile('C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files',file_name);
 save(file_path, "SoundCal");
 %% plot SoundCal
@@ -21,10 +21,10 @@ plot(SoundCal(1).Table(:,1),SoundCal(1).Table(:,2),'-ok')
 %% set HifiPlayer
 HiFiPlayer = BpodHiFi('COM9');
 HiFiPlayer.SamplingRate = 192000;
-HiFiPlayer.DigitalAttenuation_dB = -45; % Set to the same as DetectionConfidence
+HiFiPlayer.DigitalAttenuation_dB = -10; % Set to the same as DetectionConfidence
 
 %% load custom sound calibration file
-file_to_use =  'SoundCalibration20240118.mat';
+file_to_use =  'SoundCalibration20240819digAttminus10target90dBday1.mat';
 BpodSystem.CalibrationTables.SoundCal = load(fullfile('C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files',file_to_use));
 BpodSystem.CalibrationTables.SoundCal=BpodSystem.CalibrationTables.SoundCal.SoundCal;
 SoundCal = BpodSystem.CalibrationTables.SoundCal;
@@ -72,32 +72,37 @@ for k = 1:length(test_calbration_methods)
 
     %general settings
     StimulusSettings.CalibrationMethod = test_calbration_methods{k}; %NEW calibration method setting
-    StimulusSettings.SignalVolume = 60;
-    StimulusSettings.SignalDuration = 2;
-    StimulusSettings.SamplingRate = 192000;
-    StimulusSettings.SignalForm = 'LinearUpsweep';
-    StimulusSettings.Ramp = 0.01;
-    StimulusSettings.SignalVolume = 60;
-    StimulusSettings.MaxVolume = 60;
-    StimulusSettings.MinVolume = 60;
+
+    StimulusSettings.SamplingRate=192000;
+    StimulusSettings.Ramp=.05;
+    StimulusSettings.RampNoiseBeg = false;
+    StimulusSettings.RampNoiseEnd = true;
+    StimulusSettings.NoiseColor='WhiteGaussian';
+    StimulusSettings.MaxVolume=100;
+    StimulusSettings.MinVolume=0;
+    StimulusSettings.SignalForm='LinearUpsweep';
+    StimulusSettings.SignalDuration=2;
+    StimulusSettings.SignalMinFreq=10000;
+    StimulusSettings.SignalMaxFreq=15000;
+    StimulusSettings.NoiseDuration=4;
 
     %% pure tone test GenerateSinWave
-    for freq = SoundCal.Table(:, 1)'
-        sound = GenerateSineWave(StimulusSettings.SamplingRate, freq, StimulusSettings.SignalDuration);
-        sound=[sound;sound];
-        toneAtt = interp1(SoundCal.Table(:,1), SoundCal.Table(:,2), freq, 'nearest');
-        sound(1,:)=sound(1,:).*toneAtt;
-        sound(2,:) = 0; %only left speaker playing
-        HiFiPlayer.load(1, sound); %only Left
-        % HiFi built-in envelope function comes after loading sound
-        Envelope = 1/(StimulusSettings.SamplingRate*0.001):1/(StimulusSettings.SamplingRate*0.001):1; % Define 1ms linear ramp envelope of amplitude coefficients, to apply at sound onset + in reverse at sound offset
-        HiFiPlayer.AMenvelope = Envelope;
-        HiFiPlayer.push();
-        disp(strcat("Playing ", num2str(freq),  " Hz"))
-        HiFiPlayer.play(1);
-        pause(StimulusSettings.SignalDuration)
-        pause(1);
-    end
+%     for freq = SoundCal.Table(:, 1)'
+%         sound = GenerateSineWave(StimulusSettings.SamplingRate, freq, StimulusSettings.SignalDuration);
+%         sound=[sound;sound];
+%         toneAtt = interp1(SoundCal.Table(:,1), SoundCal.Table(:,2), freq, 'nearest');
+%         sound(1,:)=sound(1,:).*toneAtt;
+%         sound(2,:) = 0; %only left speaker playing
+%         HiFiPlayer.load(1, sound); %only Left
+%         % HiFi built-in envelope function comes after loading sound
+%         Envelope = 1/(StimulusSettings.SamplingRate*0.001):1/(StimulusSettings.SamplingRate*0.001):1; % Define 1ms linear ramp envelope of amplitude coefficients, to apply at sound onset + in reverse at sound offset
+%         HiFiPlayer.AMenvelope = Envelope;
+%         HiFiPlayer.push();
+%         disp(strcat("Playing ", num2str(freq),  " Hz"))
+%         HiFiPlayer.play(1);
+%         pause(StimulusSettings.SignalDuration)
+%         pause(2);
+%     end
     % pure tone test GenerateSinWave without doubling sound
 %     for freq = SoundCal.Table(:, 1)'
 %         sound = GenerateSineWave(StimulusSettings.SamplingRate, freq, StimulusSettings.SignalDuration);
@@ -114,18 +119,18 @@ for k = 1:length(test_calbration_methods)
 %         pause(1);
 %     end
     %% pure tone test Generate interpolated sound
-    for freq = SoundCal(1).Table(:, 1)'
-        StimulusSettings.SignalMinFreq = freq;
-        StimulusSettings.SignalMaxFreq = freq;
-        SignalStream = GenerateInterpolatedSignal(StimulusSettings);
-
-        HiFiPlayer.load(2,SignalStream);
-        HiFiPlayer.push();
-        disp(strcat("Playing ", num2str(freq),  " Hz"))
-        HiFiPlayer.play(2);
-        pause(StimulusSettings.SignalDuration)
-        pause(1);
-    end
+%     for freq = SoundCal(1).Table(:, 1)'
+%         StimulusSettings.SignalMinFreq = freq;
+%         StimulusSettings.SignalMaxFreq = freq;
+%         SignalStream = GenerateInterpolatedSignal(StimulusSettings);
+% 
+%         HiFiPlayer.load(2,SignalStream);
+%         HiFiPlayer.push();
+%         disp(strcat("Playing ", num2str(freq),  " Hz"))
+%         HiFiPlayer.play(2);
+%         pause(StimulusSettings.SignalDuration)
+%         pause(2);
+%     end
     
     % pure tone test, shifted
 %     pause(5)
@@ -144,40 +149,31 @@ for k = 1:length(test_calbration_methods)
 %     end
 
     %% sweep test
-    pause(5)
-    StimulusSettings.SignalDuration = 0.1;
-    StimulusSettings.SignalMinFreq = 10000;
-    StimulusSettings.SignalMaxFreq = 15000;
-    %SignalStream = GenerateInterpolatedSignal(StimulusSettings);
-    SignalStream = GenerateInterpolatedSignal(StimulusSettings);
+    StimulusSettings.SignalDuration=4;
 
-    HiFiPlayer.load(3,SignalStream);
-    HiFiPlayer.push();
-    disp(strcat("Playing upsweep"))
-    HiFiPlayer.play(3);
-    pause(StimulusSettings.SignalDuration)
+    %2nd run of testing only use part below without redifining BpodHiFi
+    for signalVol = [45; 50; 55; 60; 65; 70; 75; 80; 85; 90]'
+        StimulusSettings.RandomStream=rng('shuffle');
+        StimulusSettings.SignalVolume = signalVol;
+        SignalStream = GenerateInterpolatedSignal(StimulusSettings).*1;
+        HiFiPlayer.load(2,SignalStream);
+        HiFiPlayer.push();
+        disp(strcat("Playing ", num2str(signalVol),  " db"))
+        HiFiPlayer.play(2);
+        pause(4)
+    end
 
-    %noise test
-    pause(2)
-    StimulusSettings.NoiseColor = 'WhiteGaussian';
-    StimulusSettings.NoiseDuration = 10;
-    StimulusSettings.NoiseVolume = 45;
-    StimulusSettings.SignalMinFreq = 10000; %used for att factors
-    StimulusSettings.SignalMaxFreq = 15000;
-    StimulusSettings.MaxVolume=70;
-    StimulusSettings.MinVolume=-20;
-    StimulusSettings.RandomStream=rng('shuffle');
-    StimulusSettings.RampNoiseBeg = false; %apply ramp at beginning of noise stimulus (signal will always apply)
-    StimulusSettings.RampNoiseEnd = true; %apply ramp at beginning of noise stimulus (signal will always apply)
-    NoiseStream = GenerateNoise(StimulusSettings);
-    mean(abs(NoiseStream(:)))
-    HiFiPlayer.load(2,NoiseStream);
-    HiFiPlayer.push();
-    disp(strcat("Playing noise"))
-    HiFiPlayer.play(2);
-    pause(StimulusSettings.NoiseDuration)
-    pause(10)
+    for noiseVol = [45; 50; 55; 60]'
+        StimulusSettings.RandomStream=rng('shuffle');
+        StimulusSettings.NoiseVolume = noiseVol;
+        NoiseStream = GenerateNoise(StimulusSettings);
+        HiFiPlayer.load(2,NoiseStream);
+        HiFiPlayer.push();
+        disp(strcat("Playing ", num2str(noiseVol),  " db"))
+        HiFiPlayer.play(2);
+        pause(4)
+    end
 end
-
+%%
 delete(HiFiPlayer)
 clear HiFiPlayer
