@@ -79,6 +79,8 @@ for i = 1:nSpeakers
     SoundCal(i).TargetSPL = dbSPL_Target;
     SoundCal(i).LastDateModified = date;
     SoundCal(i).Coefficient = [];
+    SoundCal(i).digAtt = digAtt;
+    SoundCal(i).nSpeakers = nSpeakers;
 end
 
 MinFreq = FreqRange(1);
