@@ -11,9 +11,10 @@
 SoundCal = SoundCalibration_Manual([500,20000],500,90,1,-10);
 
 %% save file
-file_name =  'SoundCalibration20240819digAttminus10target90dBday1.mat';
-file_path = fullfile('C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files',file_name);
-save(file_path, "SoundCal");
+file_name =  'SoundCalibration20240827digAttminus10target90dBday6adjustedmic.mat';
+file_path = 'C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files';
+full_filename = fullfile(file_path,file_name);
+save(full_filename, "SoundCal");
 %% plot SoundCal
 figure, hold on
 plot(SoundCal(1).Table(:,1),SoundCal(1).Table(:,2),'-ok')
@@ -24,7 +25,7 @@ HiFiPlayer.SamplingRate = 192000;
 HiFiPlayer.DigitalAttenuation_dB = -10; % Set to the same as DetectionConfidence
 
 %% load custom sound calibration file
-file_to_use =  'SoundCalibration20240819digAttminus10target90dBday1.mat';
+file_to_use =  'SoundCalibration20240827digAttminus10target90dBday6.mat';
 BpodSystem.CalibrationTables.SoundCal = load(fullfile('C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files',file_to_use));
 BpodSystem.CalibrationTables.SoundCal=BpodSystem.CalibrationTables.SoundCal.SoundCal;
 SoundCal = BpodSystem.CalibrationTables.SoundCal;
@@ -48,20 +49,23 @@ l=legend({'interpolate','linear','polyfit2','polyfit4'})'; l.Box = 'off';
 %% Compare 2 Calibration Tables
 disp('new round')
 file_to_compare1 =  'SoundCalibration.mat';
-%file_to_compare2 =  'SoundCalibration20231221digAtt30beforeSF.mat';
-%file_to_compare3 =  'SoundCalibration20231221digAttafterSF30.mat';
+file_to_compare2 =  'SoundCalibration20240827digAttminus10target90dBday6.mat';
+file_to_compare3 =  'SoundCalibration20240827digAttminus10target90dBday6adjustedmic.mat';
 SoundCal_to_compare1 = load(fullfile('C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files',file_to_compare1));
-%SoundCal_to_compare2 = load(fullfile('C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files\SoundCalibrationBackUp\UltrasonicSpeakers',file_to_compare2));
-%SoundCal_to_compare3 = load(fullfile('C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files\SoundCalibrationBackUp\UltrasonicSpeakers',file_to_compare3));
+SoundCal_to_compare2 = load(fullfile('C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files',file_to_compare2));
+SoundCal_to_compare3 = load(fullfile('C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files',file_to_compare3));
 figure, hold on
-plot(SoundCal(1).Table(:,1),SoundCal.Table(:,2),'-ok') % global HiFiPlayer removed
+figure('units','normalized','outerposition',[0 0 1 1])
+%plot(SoundCal(1).Table(:,1),SoundCal.Table(:,2),'-ok') % global HiFiPlayer removed
 hold on 
 plot(SoundCal_to_compare1.SoundCal.Table(:,1),SoundCal_to_compare1.SoundCal.Table(:,2),'-or') %digAtt set after 30 glabal variables not removed
-% hold on
-% plot(SoundCal_to_compare2.SoundCal.Table(:,1),SoundCal_to_compare2.SoundCal.Table(:,2),'-og') %digAtt set before sf 30
-% hold on
-% plot(SoundCal_to_compare3.SoundCal.Table(:,1),SoundCal_to_compare3.SoundCal.Table(:,2),'-om') %digAtt set after sf 30
-%saveas(figure, file_to_use, 'png');
+hold on
+plot(SoundCal_to_compare2.SoundCal.Table(:,1),SoundCal_to_compare2.SoundCal.Table(:,2),'-og') %digAtt set before sf 30
+hold on
+plot(SoundCal_to_compare3.SoundCal.Table(:,1),SoundCal_to_compare3.SoundCal.Table(:,2),'-om') %digAtt set after sf 30
+legend(file_to_compare1, file_to_compare2, file_to_compare3, 'Location', 'northwest');
+fig_name_full = fullfile(file_path, 'soundcal_attFcompare');
+saveas(gcf, fig_name_full, 'png');
 %% Run tests
 % which calibration methods to test?
 % newv ersion of GenerateInterpolatedSignal (backwards compatible) to
@@ -149,10 +153,10 @@ for k = 1:length(test_calbration_methods)
 %     end
 
     %% sweep test
-    StimulusSettings.SignalDuration=4;
+    StimulusSettings.SignalDuration=10;
 
     %2nd run of testing only use part below without redifining BpodHiFi
-    for signalVol = [45; 50; 55; 60; 65; 70; 75; 80; 85; 90]'
+    for signalVol = [45; 90]'
         StimulusSettings.RandomStream=rng('shuffle');
         StimulusSettings.SignalVolume = signalVol;
         SignalStream = GenerateInterpolatedSignal(StimulusSettings).*1;
@@ -160,7 +164,7 @@ for k = 1:length(test_calbration_methods)
         HiFiPlayer.push();
         disp(strcat("Playing ", num2str(signalVol),  " db"))
         HiFiPlayer.play(2);
-        pause(4)
+        pause(10)
     end
 
     for noiseVol = [45; 50; 55; 60]'
