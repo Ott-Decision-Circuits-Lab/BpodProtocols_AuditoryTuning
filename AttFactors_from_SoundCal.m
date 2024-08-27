@@ -40,7 +40,6 @@ for i = 1:numel(mat_files)
         col_name = strsplit(col_name{1}, 'SoundCalibration');
         temp_col = table(temp_col, 'VariableNames', col_name(2));
     end
-
     % Append the column to the attenuation table
     attenuation_table = [attenuation_table, temp_col];
 end
