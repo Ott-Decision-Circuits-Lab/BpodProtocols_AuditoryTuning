@@ -52,26 +52,26 @@ H = BpodHiFi(BpodSystem.ModuleUSB.HiFi1); % The argument is the name of the HiFi
 
 %% Define parameters
 S = BpodSystem.ProtocolSettings; % Load settings chosen in launch manager into current workspace as a struct called S
-if isempty(fieldnames(S))  % If settings file was an empty struct, populate struct with default settings
+%if isempty(fieldnames(S))  % If settings file was an empty struct, populate struct with default settings
 
-    S.GUI.SoundDuration = 0.05; % Duration of sound (s) > 50 ms TODO to be added into values in bpod file saved
-    S.GUI.ITI = TruncatedExponential(0.8, 1.5, 1); % Seconds after stimulus sampling for a response 0.8-1.5 sec TruncExp
-    S.GUI.TrialsPerCondition = 20;
-    S.GUI.NoiseSound = 1; % if 1, plays a white noise pulse on error. if 0, no sound is played.
-    S.GUIMeta.NoiseSound.Style = 'checkbox';
+S.GUI.SoundDuration = 0.05; % Duration of sound (s) > 50 ms TODO to be added into values in bpod file saved
+S.GUI.ITI = TruncatedExponential(0.8, 1.5, 1); % Seconds after stimulus sampling for a response 0.8-1.5 sec TruncExp
+S.GUI.TrialsPerCondition = 3;
+S.GUI.NoiseSound = 1; % if 1, plays a white noise pulse on error. if 0, no sound is played.
+S.GUIMeta.NoiseSound.Style = 'checkbox';
 
-    S.GUI.MinFreq = 500; % Frequency of left cue
-    S.GUI.MaxFreq = 20000; % Frequency of right cue
-    S.GUI.StepFreq = 500;
+S.GUI.MinFreq = 500; % Frequency of left cue
+S.GUI.MaxFreq = 2000; % Frequency of right cue
+S.GUI.StepFreq = 500;
 
-    S.GUI.MinVolume = 80;
-    S.GUI.MaxVolume = 80;
-    S.GUI.StepVolume = 10;
+S.GUI.MinVolume = 80;
+S.GUI.MaxVolume = 80;
+S.GUI.StepVolume = 10;
 
-    S.GUIPanels.Sound = {'SoundDuration', 'ITI', 'TrialsPerCondition','NoiseSound'};
-    S.GUIPanels.Freq = {'MinFreq','MaxFreq','StepFreq'};
-    S.GUIPanels.Volume = {'MinVolume','MaxVolume','StepVolume'};
-end
+S.GUIPanels.Sound = {'SoundDuration', 'ITI', 'TrialsPerCondition','NoiseSound'};
+S.GUIPanels.Freq = {'MinFreq','MaxFreq','StepFreq'};
+S.GUIPanels.Volume = {'MinVolume','MaxVolume','StepVolume'};
+%end
 
 %% Define trials
 FreqVector = S.GUI.MinFreq:S.GUI.StepFreq:S.GUI.MaxFreq;
@@ -84,7 +84,7 @@ VolTrials = VolVector'*ones(1,length(FreqTrials_single));
 VolTrials=VolTrials';
 VolTrials = VolTrials(:)';
 
-MaxTrials = length(FreqTrials);
+MaxTrials = length(FreqTrials)*3;
 
 BpodSystem.Data.TrialTypes = []; % The trial type of each trial completed will be added here.
 BpodSystem.Data.Custom.Frequency = [];
@@ -101,12 +101,6 @@ H.DigitalAttenuation_dB = -10; % Set a comfortable listening level for most head
 %Load SoundCal table
 SoundCal = BpodSystem.CalibrationTables.SoundCal;
 nocal=false;
-
-%% Generate Upsweeps signal
-% GenerateSineSweep(samplingRate, startFreq, endFreq, duration)
-UpsweepSound = GenerateSineSweep(SF, 10000, 15000, 0.1);
-%% Generate noise signal
-NoiseSound = GenerateWhiteNoise(SF, S.GUI.SoundDuration, 1, 1);
 
 %% Main trial loop
 for iTrial = 1:MaxTrials
@@ -125,9 +119,15 @@ for iTrial = 1:MaxTrials
 
     %% Generate pure tone signal
     sound = GenerateSineWave(SF, FreqTrials(iTrial), S.GUI.SoundDuration);
-
     sound=[sound;sound];
-    %UpsweepSound = [UpsweepSound; UpsweepSound];
+
+    %% Generate Upsweeps signal
+    % GenerateSineSweep(samplingRate, startFreq, endFreq, duration)
+    UpsweepSound = GenerateSineSweep(SF, 10000, 15000, S.GUI.SoundDuration);
+    UpsweepSound = [UpsweepSound; UpsweepSound];
+
+    %% Generate noise signal
+    NoiseSound = GenerateWhiteNoise(SF, S.GUI.SoundDuration, 1, 1);
     %NoiseSound = [NoiseSound; NoiseSound];
 
     %Error message if SoundCal table doesn't exist
@@ -174,10 +174,12 @@ for iTrial = 1:MaxTrials
     sound(1,:)=sound(1,:).*toneAtt;
 
     % For playing only L or R channel when signal=[signal;signal];
-    signal(2, :) = zeros(1, length(signal)); % For playing only L channel
+    sound(2, :) = zeros(1, length(sound)); % For playing only L channel
     %signal(1, :) = zeros(1, length(signal)); % For playing only R channel
-
-    UpsweepSound(:)=UpsweepSound(:).*toneAtt;
+  
+    %% 
+    UpsweepSound(1,:)=UpsweepSound(1,:).*toneAtt;
+    UpsweepSound(2, :) = zeros(1, length(UpsweepSound)); % For playing only L channel
     NoiseSound(:)=NoiseSound(:).*toneAtt;
     %% GenerateSignal Script using upsweeps instead
     %sound = GenerateSignal(StimulusSettings);
@@ -188,9 +190,11 @@ for iTrial = 1:MaxTrials
 
     %% Load sound to HiFi
     H.load(1, sound);
-    disp(length(sound));
-    H.load(2, UpsweepSound(1, :)) % plays upsweeps and noise between every pure tone
-    H.load(3, NoiseSound(1, :));
+    disp("Sound");
+    H.load(2, UpsweepSound) % plays upsweeps and noise between every pure tone
+    disp("Upsweep")
+    H.load(3, NoiseSound);
+    disp("Noise")
 
     %% HiFi built-in envelope function comes after loading sound
     Envelope = 1/(SF*0.001):1/(SF*0.001):1; % Define 1ms linear ramp envelope of amplitude coefficients, to apply at sound onset + in reverse at sound offset
@@ -202,6 +206,22 @@ for iTrial = 1:MaxTrials
 
     sma = NewStateMatrix(); % Assemble state matrix
 
+%     sma = AddState(sma,'Name','Initialize', ...
+%         'Timer',0.1,...
+%         'StateChangeConditions',{'Tup','PlaySound'}, ...
+%         'OutputAction',{'HiFi1','*'});
+% 
+%     sma = AddState(sma, 'Name', 'PlaySound', ...
+%         'Timer', S.GUI.SoundDuration,...
+%         'StateChangeConditions', {'Tup', 'ITI'},...
+%         'OutputActions', {'HiFi1', ['P', 0]}); %
+% 
+%     sma = AddState(sma, 'Name', 'ITI', ...
+%         'Timer', S.GUI.ITI,...
+%         'StateChangeConditions', {'Tup', 'exit'},...
+%         'OutputActions', {}); %TO DO: output action should be silence
+
+    %% New States
     sma = AddState(sma,'Name','Initialize', ...
         'Timer',0.1,...
         'StateChangeConditions',{'Tup','PlaySound'}, ...
@@ -209,13 +229,34 @@ for iTrial = 1:MaxTrials
 
     sma = AddState(sma, 'Name', 'PlaySound', ...
         'Timer', S.GUI.SoundDuration,...
+        'StateChangeConditions', {'Tup', 'PlayUpsweep'},...
+        'OutputActions', {'HiFi1', ['P', 0]}); % Play pure tone on channel 1
+    
+    sma = AddState(sma, 'Name', 'ITIPause1', ...
+        'Timer', S.GUI.ITI,...
+        'StateChangeConditions', {'Tup', 'exit'},...
+        'OutputActions', {});
+
+    sma = AddState(sma, 'Name', 'PlayUpsweep', ...
+        'Timer', S.GUI.SoundDuration,... % Adjust duration as needed
+        'StateChangeConditions', {'Tup', 'PlayNoise'},...
+        'OutputActions', {'HiFi1', ['P', 1]}); % Play upsweep on channel 2
+
+    sma = AddState(sma, 'Name', 'ITIPause2', ...
+        'Timer', S.GUI.ITI,...
+        'StateChangeConditions', {'Tup', 'exit'},...
+        'OutputActions', {});
+
+    sma = AddState(sma, 'Name', 'PlayNoise', ...
+        'Timer', S.GUI.SoundDuration,... % Adjust duration as needed
         'StateChangeConditions', {'Tup', 'ITI'},...
-        'OutputActions', {'HiFi1', ['P', 0]}); %
+        'OutputActions', {'HiFi1', ['P', 2]}); % Play noise on channel 3
+    
 
     sma = AddState(sma, 'Name', 'ITI', ...
         'Timer', S.GUI.ITI,...
         'StateChangeConditions', {'Tup', 'exit'},...
-        'OutputActions', {}); %TO DO: output action should be silence
+        'OutputActions', {});
 
     SendStateMachine(sma); % Send the state matrix to the Bpod device
     RawEvents = RunStateMachine; % Run the trial and return events
@@ -229,7 +270,7 @@ for iTrial = 1:MaxTrials
     end
     HandlePauseCondition; % Checks to see if the protocol is paused. If so, waits until user resumes.
     if BpodSystem.Status.BeingUsed == 0 % If protocol was stopped, exit the loop
-        return
+        break
     end
-
+disp("Task finished")
 end
