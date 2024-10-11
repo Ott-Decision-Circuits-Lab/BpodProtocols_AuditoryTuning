@@ -56,6 +56,9 @@ S = BpodSystem.ProtocolSettings; % Load settings chosen in launch manager into c
 
 S.GUI.SoundDuration = 0.05; % Duration of sound (s) > 50 ms TODO to be added into values in bpod file saved
 S.GUI.ITI = TruncatedExponential(0.8, 1.5, 1); % Seconds after stimulus sampling for a response 0.8-1.5 sec TruncExp
+S.GUI.ITIPause1 = TruncatedExponential(0.8, 1.5, 1); %between pure tone and upsweep
+S.GUI.ITIPause2 = TruncatedExponential(0.8, 1.5, 1); %between upsweep and noise
+
 S.GUI.TrialsPerCondition = 3;
 S.GUI.NoiseSound = 1; % if 1, plays a white noise pulse on error. if 0, no sound is played.
 S.GUIMeta.NoiseSound.Style = 'checkbox';
@@ -64,8 +67,8 @@ S.GUI.MinFreq = 500; % Frequency of left cue
 S.GUI.MaxFreq = 2000; % Frequency of right cue
 S.GUI.StepFreq = 500;
 
-S.GUI.MinVolume = 80;
-S.GUI.MaxVolume = 80;
+S.GUI.MinVolume = 70;
+S.GUI.MaxVolume = 70;
 S.GUI.StepVolume = 10;
 
 S.GUIPanels.Sound = {'SoundDuration', 'ITI', 'TrialsPerCondition','NoiseSound'};
@@ -80,11 +83,11 @@ FreqTrials_single = repmat(FreqVector,1,S.GUI.TrialsPerCondition);
 VolVector = S.GUI.MinVolume:S.GUI.StepVolume:S.GUI.MaxVolume;
 FreqTrials = repmat(FreqTrials_single,1,length(VolVector));
 
-VolTrials = VolVector'*ones(1,length(FreqTrials_single));
+VolTrials = VolVector'*ones(1,length(FreqTrials_single)); %if 2 volumes in VolumeVector, FreqTrials double
 VolTrials=VolTrials';
 VolTrials = VolTrials(:)';
 
-MaxTrials = length(FreqTrials)*3;
+MaxTrials = length(FreqTrials);
 
 BpodSystem.Data.TrialTypes = []; % The trial type of each trial completed will be added here.
 BpodSystem.Data.Custom.Frequency = [];
@@ -229,22 +232,22 @@ for iTrial = 1:MaxTrials
 
     sma = AddState(sma, 'Name', 'PlaySound', ...
         'Timer', S.GUI.SoundDuration,...
-        'StateChangeConditions', {'Tup', 'PlayUpsweep'},...
+        'StateChangeConditions', {'Tup', 'ITIPause1'},...
         'OutputActions', {'HiFi1', ['P', 0]}); % Play pure tone on channel 1
     
     sma = AddState(sma, 'Name', 'ITIPause1', ...
-        'Timer', S.GUI.ITI,...
-        'StateChangeConditions', {'Tup', 'exit'},...
+        'Timer', S.GUI.ITIPause1,...
+        'StateChangeConditions', {'Tup', 'PlayUpsweep'},...
         'OutputActions', {});
 
     sma = AddState(sma, 'Name', 'PlayUpsweep', ...
         'Timer', S.GUI.SoundDuration,... % Adjust duration as needed
-        'StateChangeConditions', {'Tup', 'PlayNoise'},...
+        'StateChangeConditions', {'Tup', 'ITIPause2'},...
         'OutputActions', {'HiFi1', ['P', 1]}); % Play upsweep on channel 2
 
     sma = AddState(sma, 'Name', 'ITIPause2', ...
-        'Timer', S.GUI.ITI,...
-        'StateChangeConditions', {'Tup', 'exit'},...
+        'Timer', S.GUI.ITIPause2,...
+        'StateChangeConditions', {'Tup', 'PlayNoise'},...
         'OutputActions', {});
 
     sma = AddState(sma, 'Name', 'PlayNoise', ...
@@ -268,9 +271,15 @@ for iTrial = 1:MaxTrials
         %BpodSystem.Data.TrialTypes(iTrial) = TrialTypes(iTrial); % Adds the trial type of the current trial to data
         SaveBpodSessionData; % Saves the field BpodSystem.Data to the current data file
     end
+    S.GUI.ITI = TruncatedExponential(0.8, 1.5, 1); % Seconds after stimulus sampling for a response 0.8-1.5 sec TruncExp
+    S.GUI.ITIPause1 = TruncatedExponential(0.8, 1.5, 1); %between pure tone and upsweep
+    S.GUI.ITIPause2 = TruncatedExponential(0.8, 1.5, 1); %between upsweep and noise
     HandlePauseCondition; % Checks to see if the protocol is paused. If so, waits until user resumes.
-    if BpodSystem.Status.BeingUsed == 0 % If protocol was stopped, exit the loop
-        break
+    if iTrial == MaxTrials
+        BpodSystem.Status.BeingUsed = 0;
     end
-disp("Task finished")
+    if BpodSystem.Status.BeingUsed == 0 % If protocol was stopped, exit the loop
+        return
+    end
 end
+disp("Task finished")
