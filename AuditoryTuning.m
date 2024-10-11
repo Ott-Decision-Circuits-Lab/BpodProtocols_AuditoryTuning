@@ -55,17 +55,18 @@ S = BpodSystem.ProtocolSettings; % Load settings chosen in launch manager into c
 %if isempty(fieldnames(S))  % If settings file was an empty struct, populate struct with default settings
 
 S.GUI.SoundDuration = 0.05; % Duration of sound (s) > 50 ms TODO to be added into values in bpod file saved
-S.GUI.ITI = TruncatedExponential(0.8, 1.5, 1); % Seconds after stimulus sampling for a response 0.8-1.5 sec TruncExp
-S.GUI.ITIPause1 = TruncatedExponential(0.8, 1.5, 1); %between pure tone and upsweep
-S.GUI.ITIPause2 = TruncatedExponential(0.8, 1.5, 1); %between upsweep and noise
+S.GUI.ITI = TruncatedExponential(0.8, 1.2, 1); % Seconds after stimulus sampling for a response 0.8-1.5 sec TruncExp
+S.GUI.ITIPause1 = TruncatedExponential(0.8, 1.2, 1); %between pure tone and upsweep
+S.GUI.ITIPause2 = TruncatedExponential(0.8, 1.2, 1); %between upsweep and noise
 
-S.GUI.TrialsPerCondition = 3;
+S.GUI.TrialsPerCondition = 5;
 S.GUI.NoiseSound = 1; % if 1, plays a white noise pulse on error. if 0, no sound is played.
 S.GUIMeta.NoiseSound.Style = 'checkbox';
 
-S.GUI.MinFreq = 500; % Frequency of left cue
-S.GUI.MaxFreq = 2000; % Frequency of right cue
+S.GUI.MinFreq = 1000; % Frequency of left cue
+S.GUI.MaxFreq = 20000; % Frequency of right cue
 S.GUI.StepFreq = 500;
+S.GUI.BorderStepFreq = 1000;
 
 S.GUI.MinVolume = 70;
 S.GUI.MaxVolume = 70;
@@ -78,7 +79,10 @@ S.GUIPanels.Volume = {'MinVolume','MaxVolume','StepVolume'};
 
 %% Define trials
 % Define which frequencies to play
-FreqVector = S.GUI.MinFreq:S.GUI.StepFreq:S.GUI.MaxFreq; 
+FreqVectorBeg = S.GUI.MinFreq:S.GUI.BorderStepFreq:9000;
+FreqVectorMid = 9000:S.GUI.StepFreq:16000; 
+FreqVectorEnd = 16000:S.GUI.BorderStepFreq:20000;
+FreqVector = [FreqVectorBeg, FreqVectorMid, FreqVectorEnd];
 % FreqVector is repeated so that each frequency gets several plays with
 % same exact settings (to account for variability in neural responses to the same stimuli)
 FreqTrials_single = repmat(FreqVector,1,S.GUI.TrialsPerCondition); 
