@@ -121,11 +121,11 @@ for iTrial = 1:MaxTrials
 
     %% abbreviate variable names and clip impossible values for better handling
     StimulusSettings.SamplingRate = SF;
-    StimulusSettings.Ramp = 0.05; %UPDATE HERE IF NO NOISE IS USED
+    StimulusSettings.Ramp = 0.001; %UPDATE HERE IF NO NOISE IS USED
     StimulusSettings.SignalDuration = S.GUI.SoundDuration;
     StimulusSettings.SignalForm = 'LinearUpsweep';
-    StimulusSettings.SignalMinFreq = FreqTrials(iTrial);
-    StimulusSettings.SignalMaxFreq = FreqTrials(iTrial);
+    StimulusSettings.SignalMinFreq = 10000;
+    StimulusSettings.SignalMaxFreq = 15000;
     StimulusSettings.SignalVolume = VolTrials(iTrial);
     StimulusSettings.ITI = S.GUI.ITI;
 
@@ -135,8 +135,9 @@ for iTrial = 1:MaxTrials
 
     %% Generate Upsweeps signal
     % GenerateSineSweep(samplingRate, startFreq, endFreq, duration)
-    UpsweepSound = GenerateSineSweep(SF, 10000, 15000, S.GUI.SoundDuration);
-    UpsweepSound = [UpsweepSound; UpsweepSound];
+    %UpsweepSound = GenerateSineSweep(SF, 10000, 15000, S.GUI.SoundDuration);
+    %UpsweepSound = [UpsweepSound; UpsweepSound];
+    UpsweepSound = GenerateInterpolatedSignal(StimulusSettings);
 
     %% Generate noise signal
     NoiseSound = GenerateWhiteNoise(SF, S.GUI.SoundDuration, 1, 1);
@@ -190,8 +191,9 @@ for iTrial = 1:MaxTrials
     %signal(1, :) = zeros(1, length(signal)); % For playing only R channel
   
     %% 
-    UpsweepSound(1,:)=UpsweepSound(1,:).*toneAtt;
-    UpsweepSound(2, :) = zeros(1, length(UpsweepSound)); % For playing only L channel
+    % Use these 2 lines if not using GenerateInterpolatedSound
+    %UpsweepSound(1,:)=UpsweepSound(1,:).*toneAtt;
+    %UpsweepSound(2, :) = zeros(1, length(UpsweepSound)); % For playing only L channel
     NoiseSound(:)=NoiseSound(:).*toneAtt;
     %% GenerateSignal Script using upsweeps instead
     %sound = GenerateSignal(StimulusSettings);
