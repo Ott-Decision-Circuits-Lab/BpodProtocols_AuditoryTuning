@@ -77,8 +77,13 @@ S.GUIPanels.Volume = {'MinVolume','MaxVolume','StepVolume'};
 %end
 
 %% Define trials
-FreqVector = S.GUI.MinFreq:S.GUI.StepFreq:S.GUI.MaxFreq;
-FreqTrials_single = repmat(FreqVector,1,S.GUI.TrialsPerCondition);
+% Define which frequencies to play
+FreqVector = S.GUI.MinFreq:S.GUI.StepFreq:S.GUI.MaxFreq; 
+% FreqVector is repeated so that each frequency gets several plays with
+% same exact settings (to account for variability in neural responses to the same stimuli)
+FreqTrials_single = repmat(FreqVector,1,S.GUI.TrialsPerCondition); 
+% Randomize the order in which these pure tones are played
+FreqTrials_single = FreqTrials_single(randperm(length(FreqTrials_single))); %randomize the order of frequencies once they are repeated 
 
 VolVector = S.GUI.MinVolume:S.GUI.StepVolume:S.GUI.MaxVolume;
 FreqTrials = repmat(FreqTrials_single,1,length(VolVector));
@@ -112,7 +117,7 @@ for iTrial = 1:MaxTrials
 
     %% abbreviate variable names and clip impossible values for better handling
     StimulusSettings.SamplingRate = SF;
-    StimulusSettings.Ramp = 0.01; %UPDATE HERE IF NO NOISE IS USED
+    StimulusSettings.Ramp = 0.05; %UPDATE HERE IF NO NOISE IS USED
     StimulusSettings.SignalDuration = S.GUI.SoundDuration;
     StimulusSettings.SignalForm = 'LinearUpsweep';
     StimulusSettings.SignalMinFreq = FreqTrials(iTrial);

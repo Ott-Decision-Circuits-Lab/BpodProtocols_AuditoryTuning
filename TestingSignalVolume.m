@@ -1,9 +1,9 @@
 % Load txt file with signal testing
 directory = 'C:\Users\dariy\Desktop\CalibrationSoundNewSpeakers\GenerateSinWave';
-filename = fullfile(directory, '20240806SoundCal2024080590degreesFoam10ssignalnoiseplus6dB.txt');
+filename = fullfile(directory, 'Test20240903SoundCalibration_Median_AttFactors_No_Extreme_Outliers__90dB_digatt10_10days.txt');
 
-soundcal_filename = 'SoundCalibration20240805digAtt109to16kHztarget90dB.mat';
-soundcal_dir = 'C:\Users\dariy\Desktop\SoundCalibrationBackUp\UltrasonicSpeakers';
+soundcal_filename = 'SoundCalibration_Median_AttFactors_No_Extreme_Outliers__90dB_digatt10_10days.mat';
+soundcal_dir = 'C:\Users\dariy\Desktop\SoundCalibrationBackUp\UltrasonicSpeakers\digAtt10_target90_10days';
 soundcal_filename = fullfile(soundcal_dir, soundcal_filename);
 
 [freq_vec_rew_signal, volumes_rew] = plot_REW_data(filename, soundcal_filename);
@@ -66,7 +66,7 @@ grid on;
 %% SECTION2: Select the points of the peak around specific volume 
 % for signal volume of 10 sec / log_interval = 117.1875 REW entries will be
 % made > the LAF entries of the signal should have ~ the same number of entries
-laf_column = LAF(1221:1350);
+laf_column = LAF(176:313);
 threshold = 82;
 %Plot isolated peak for 90 dB
 ax2 = nexttile(t);

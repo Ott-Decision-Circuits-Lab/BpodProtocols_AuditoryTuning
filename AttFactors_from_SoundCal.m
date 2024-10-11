@@ -1,5 +1,5 @@
 
-directory = 'C:\Users\dariy\Desktop\SoundCalibrationBackUp\UltrasonicSpeakers\digAtt10_target90';
+directory = 'C:\Users\dariy\Desktop\SoundCalibrationBackUp\UltrasonicSpeakers\digAtt10_target90_10days';
 data_table = create_attenuation_table(directory);
 new_median_att_table = plot_mean_attenuation(data_table, directory);
 % %%
