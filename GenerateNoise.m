@@ -62,7 +62,7 @@ end
         toneAtt = mean(SoundCal.Table(:, 2)); %just take the mean over all signal frequencies
         %use mean of attenuation factors in frequency range
         %toneAtt = mean(SoundCal(1,s).Table(SoundCal(1,s).Table(:,1)>=SignalMinFreq&SoundCal(1,s).Table(:,1)<=SignalMaxFreq,2));
-        diffSPL = NoiseVolume - [SoundCal.TargetSPL] + 0;
+        diffSPL = NoiseVolume - [SoundCal.TargetSPL] + 9;
     end
     %toneAtt = [polyval(SoundCal(1,1).Coefficient,toneFreq)' polyval(SoundCal(1,2).Coefficient,toneFreq)']; in Torben's script
     attFactor = sqrt(10.^(diffSPL./10)); %sqrt(10.^(diffSPL./10)) in Torben's script WHY sqrt?

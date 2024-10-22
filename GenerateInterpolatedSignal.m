@@ -81,15 +81,15 @@ signal(2, :) = zeros(1, length(signal)); % For playing only L channel
 %signal(1, :) = zeros(1, length(signal)); % For playing only R channel
 
 %put an envelope to avoide clicking sounds at beginning and end
-% The Envelope is commentted for  AuditoryTuning, it already has an
-% envelope and Ramp 0.001
-% omega=(acos(sqrt(0.1))-acos(sqrt(0.9)))/(SignalRamp/pi*2); % This is for the envelope with Ramp duration duration
-% t=0 : (1/SamplingRate) : pi/2/omega;
-% t=t(1:(end-1));
-% RaiseVec= (cos(omega*t)).^2;
-% 
-% Envelope = ones(length(signal),1); % This is the envelope
-% Envelope(1:length(RaiseVec)) = fliplr(RaiseVec);
-% Envelope(end-length(RaiseVec)+1:end) = (RaiseVec);
-% 
-% signal = signal.*Envelope';
+%The Envelope is commentted for  AuditoryTuning, it already has an
+%envelope and Ramp 0.001
+omega=(acos(sqrt(0.1))-acos(sqrt(0.9)))/(SignalRamp/pi*2); % This is for the envelope with Ramp duration duration
+t=0 : (1/SamplingRate) : pi/2/omega;
+t=t(1:(end-1));
+RaiseVec= (cos(omega*t)).^2;
+
+Envelope = ones(length(signal),1); % This is the envelope
+Envelope(1:length(RaiseVec)) = fliplr(RaiseVec);
+Envelope(end-length(RaiseVec)+1:end) = (RaiseVec);
+
+signal = signal.*Envelope';

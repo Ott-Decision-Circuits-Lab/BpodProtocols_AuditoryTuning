@@ -54,7 +54,8 @@ H = BpodHiFi(BpodSystem.ModuleUSB.HiFi1); % The argument is the name of the HiFi
 S = BpodSystem.ProtocolSettings; % Load settings chosen in launch manager into current workspace as a struct called S
 %if isempty(fieldnames(S))  % If settings file was an empty struct, populate struct with default settings
 
-S.GUI.SoundDuration = 0.05; % Duration of sound (s) > 50 ms TODO to be added into values in bpod file saved
+S.GUI.SoundDuration = 0.100; % Duration of sound (s) > 50 ms TODO to be added into values in bpod file saved
+S.GUI.PureToneDuration = 0.05; 
 S.GUI.ITI = TruncatedExponential(0.8, 1.2, 1); % Seconds after stimulus sampling for a response 0.8-1.5 sec TruncExp
 S.GUI.ITIPause1 = TruncatedExponential(0.8, 1.2, 1); %between pure tone and upsweep
 S.GUI.ITIPause2 = TruncatedExponential(0.8, 1.2, 1); %between upsweep and noise
@@ -68,9 +69,9 @@ S.GUI.MaxFreq = 20000; % Frequency of right cue
 S.GUI.StepFreq = 500;
 S.GUI.BorderStepFreq = 1000;
 
-S.GUI.MinVolume = 70;
-S.GUI.MaxVolume = 70;
-S.GUI.StepVolume = 10;
+S.GUI.MinVolume = 45;
+S.GUI.MaxVolume = 75;
+S.GUI.StepVolume = 15;
 
 S.GUIPanels.Sound = {'SoundDuration', 'ITI', 'TrialsPerCondition','NoiseSound'};
 S.GUIPanels.Freq = {'MinFreq','MaxFreq','StepFreq'};
@@ -121,7 +122,7 @@ for iTrial = 1:MaxTrials
 
     %% abbreviate variable names and clip impossible values for better handling
     StimulusSettings.SamplingRate = SF;
-    StimulusSettings.Ramp = 0.001; %UPDATE HERE IF NO NOISE IS USED
+    StimulusSettings.Ramp = 0.05; % For GenerateInterpolatedSignal and GenerateNoise
     StimulusSettings.SignalDuration = S.GUI.SoundDuration;
     StimulusSettings.SignalForm = 'LinearUpsweep';
     StimulusSettings.SignalMinFreq = 10000;
@@ -130,7 +131,7 @@ for iTrial = 1:MaxTrials
     StimulusSettings.ITI = S.GUI.ITI;
 
     %% Generate pure tone signal
-    sound = GenerateSineWave(SF, FreqTrials(iTrial), S.GUI.SoundDuration);
+    sound = GenerateSineWave(SF, FreqTrials(iTrial), S.GUI.PureToneDuration);
     sound=[sound;sound];
 
     %% Generate Upsweeps signal
@@ -156,7 +157,7 @@ for iTrial = 1:MaxTrials
 
     if nocal == false
         %toneAtt = SoundCal(1,s).Coefficient; % basic implementation with auto generated cooeficient based on polyval of all attFactors for all freq > inaccurate
-        idx_toneAtt =  find(round(SoundCal.Table(:,1))==FreqTrials(iTrial));
+        idx_toneAtt = find(round(SoundCal.Table(:,1))==FreqTrials(iTrial));
         if ~isempty(idx_toneAtt)
             %if SoundCal has exact freq needed
             idx_toneAtt =  find(round(SoundCal.Table(:,1))==FreqTrials(iTrial));
@@ -186,21 +187,29 @@ for iTrial = 1:MaxTrials
     end
     sound(1,:)=sound(1,:).*toneAtt;
 
-    % For playing only L or R channel when signal=[signal;signal];
+    %% For playing only L or R channel when signal=[signal;signal];
     sound(2, :) = zeros(1, length(sound)); % For playing only L channel
     %signal(1, :) = zeros(1, length(signal)); % For playing only R channel
   
-    %% 
+    %% Adjust to toneAtt
     % Use these 2 lines if not using GenerateInterpolatedSound
     %UpsweepSound(1,:)=UpsweepSound(1,:).*toneAtt;
     %UpsweepSound(2, :) = zeros(1, length(UpsweepSound)); % For playing only L channel
-    NoiseSound(:)=NoiseSound(:).*toneAtt;
+    %NoiseSound(:)=NoiseSound(:).*toneAtt;
+
     %% GenerateSignal Script using upsweeps instead
     %sound = GenerateSignal(StimulusSettings);
 
     %% Manual envelope should come before loading
     % GenerateSinWave includes envelope functions,
-    % GenerateInterpolatedSignal will require manual envelope inside the function
+    % GenerateInterpolatedSignal and GenerateNoise have a manual envelope inside the function
+
+    %% New Envelope implementation only for pure tones
+    RampVec = 1/(SF*0.001):1/(SF*0.001):1;
+    Envelope = ones(length(sound),1); % This is the envelope
+    Envelope(1:length(RampVec)) = (RampVec);
+    Envelope(end-length(RampVec)+1:end) = fliplr(RampVec);
+    sound = sound.*Envelope';
 
     %% Load sound to HiFi
     H.load(1, sound);
@@ -211,8 +220,12 @@ for iTrial = 1:MaxTrials
     disp("Noise")
 
     %% HiFi built-in envelope function comes after loading sound
-    Envelope = 1/(SF*0.001):1/(SF*0.001):1; % Define 1ms linear ramp envelope of amplitude coefficients, to apply at sound onset + in reverse at sound offset
-    H.AMenvelope = Envelope;
+
+    % Envelope = 1/(SF*0.001):1/(SF*0.001):1; % Define 1ms linear ramp envelope of amplitude coefficients, to apply at sound onset + in reverse at sound offset
+    % H.AMenvelope = Envelope;
+    % H.UseAMEnvelope
+
+    %signal 100 ms for noise and signal, but pure tones 50 ms
 
     %% load sounds that already include an Envelope after
     % H.load(2, UpsweepSound)
