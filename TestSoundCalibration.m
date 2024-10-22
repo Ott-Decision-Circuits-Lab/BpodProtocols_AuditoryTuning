@@ -11,7 +11,7 @@
 SoundCal = SoundCalibration_Manual([500,20000],500,90,1,-10);
 
 %% save file
-file_name =  'SoundCalibration20240904digAttminus10target90dBday11.mat';
+file_name =  'SoundCalibration.mat';
 file_path = 'C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files';
 full_filename = fullfile(file_path,file_name);
 save(full_filename, "SoundCal");
@@ -25,7 +25,7 @@ HiFiPlayer.SamplingRate = 192000;
 HiFiPlayer.DigitalAttenuation_dB = -10; % Set to the same as DetectionConfidence
 
 %% load custom sound calibration file
-file_to_use =  'SoundCalibration.mat';
+file_to_use =  'SoundCalibration_Median_AttFactors_No_Extreme_Outliers_12days.mat';
 BpodSystem.CalibrationTables.SoundCal = load(fullfile('C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files',file_to_use));
 BpodSystem.CalibrationTables.SoundCal=BpodSystem.CalibrationTables.SoundCal.SoundCal;
 SoundCal = BpodSystem.CalibrationTables.SoundCal;
@@ -49,7 +49,7 @@ l=legend({'interpolate','linear','polyfit2','polyfit4'})'; l.Box = 'off';
 %% Compare 2 Calibration Tables
 disp('new round')
 file_to_compare1 =  'SoundCalibration.mat';
-file_to_compare2 =  'SoundCalibration20240904digAttminus10target90dBday11.mat';
+file_to_compare2 =  'SoundCalibration_Median_AttFactors_No_Extreme_Outliers_12days.mat';
 %file_to_compare3 =  'SoundCalibration20240827digAttminus10target90dBday6adjustedmic.mat';
 SoundCal_to_compare1 = load(fullfile('C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files',file_to_compare1));
 SoundCal_to_compare2 = load(fullfile('C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files',file_to_compare2));
@@ -81,7 +81,7 @@ for k = 1:length(test_calbration_methods)
     StimulusSettings.RampNoiseBeg = true;
     StimulusSettings.RampNoiseEnd = true;
     StimulusSettings.NoiseColor='WhiteGaussian';
-    StimulusSettings.MaxVolume=90;
+    StimulusSettings.MaxVolume=100;
     StimulusSettings.MinVolume=0;
     StimulusSettings.SignalForm='LinearUpsweep';
     StimulusSettings.SignalDuration=2;
@@ -121,19 +121,21 @@ for k = 1:length(test_calbration_methods)
 %         pause(StimulusSettings.SignalDuration)
 %         pause(1);
 %     end
-%     % pure tone test Generate interpolated sound
-%     for freq = SoundCal(1).Table(:, 1)'
-%         StimulusSettings.SignalMinFreq = freq;
-%         StimulusSettings.SignalMaxFreq = freq;
-%         SignalStream = GenerateInterpolatedSignal(StimulusSettings);
-% 
-%         HiFiPlayer.load(2,SignalStream);
-%         HiFiPlayer.push();
-%         disp(strcat("Playing ", num2str(freq),  " Hz"))
-%         HiFiPlayer.play(2);
-%         pause(StimulusSettings.SignalDuration)
-%         pause(2);
-%     end
+    % pure tone test Generate interpolated sound
+    StimulusSettings.SignalDuration=2;
+    StimulusSettings.SignalVolume = 90;
+    for freq = SoundCal(1).Table(:, 1)'
+        StimulusSettings.SignalMinFreq = freq;
+        StimulusSettings.SignalMaxFreq = freq;
+        SignalStream = GenerateInterpolatedSignal(StimulusSettings);
+
+        HiFiPlayer.load(2,SignalStream);
+        HiFiPlayer.push();
+        disp(strcat("Playing ", num2str(freq),  " Hz"))
+        HiFiPlayer.play(2);
+        pause(StimulusSettings.SignalDuration)
+        pause(2);
+    end
 %     
     % pure tone test, shifted
 %     pause(5)
@@ -153,9 +155,10 @@ for k = 1:length(test_calbration_methods)
 
     %% sweep test
     StimulusSettings.SignalDuration=10;
-
+    StimulusSettings.SignalMinFreq=10000;
+    StimulusSettings.SignalMaxFreq=15000;
     %2nd run of testing only use part below without redifining BpodHiFi
-    for signalVol = [45; 90]'
+    for signalVol = [45;  50; 55; 60; 65; 70; 75; 80; 85; 90]'
         StimulusSettings.RandomStream=rng('shuffle');
         StimulusSettings.SignalVolume = signalVol;
         SignalStream = GenerateInterpolatedSignal(StimulusSettings).*1;

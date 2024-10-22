@@ -59,6 +59,7 @@ S.GUI.PureToneDuration = 0.05;
 S.GUI.ITI = TruncatedExponential(0.8, 1.2, 1); % Seconds after stimulus sampling for a response 0.8-1.5 sec TruncExp
 S.GUI.ITIPause1 = TruncatedExponential(0.8, 1.2, 1); %between pure tone and upsweep
 S.GUI.ITIPause2 = TruncatedExponential(0.8, 1.2, 1); %between upsweep and noise
+S.GUI.CurrentFreq = 0;
 
 S.GUI.TrialsPerCondition = 5;
 S.GUI.NoiseSound = 1; % if 1, plays a white noise pulse on error. if 0, no sound is played.
@@ -73,7 +74,7 @@ S.GUI.MinVolume = 45;
 S.GUI.MaxVolume = 75;
 S.GUI.StepVolume = 15;
 
-S.GUIPanels.Sound = {'SoundDuration', 'ITI', 'TrialsPerCondition','NoiseSound'};
+S.GUIPanels.Sound = {'SoundDuration', 'ITI', 'TrialsPerCondition','NoiseSound', 'CurrentFreq'};
 S.GUIPanels.Freq = {'MinFreq','MaxFreq','StepFreq'};
 S.GUIPanels.Volume = {'MinVolume','MaxVolume','StepVolume'};
 %end
@@ -128,11 +129,22 @@ for iTrial = 1:MaxTrials
     StimulusSettings.SignalMinFreq = 10000;
     StimulusSettings.SignalMaxFreq = 15000;
     StimulusSettings.SignalVolume = VolTrials(iTrial);
+    StimulusSettings.NoiseVolume = 55;
+    StimulusSettings.NoiseDuration = S.GUI.SoundDuration;
+    StimulusSettings.NoiseColor='WhiteGaussian';
+    StimulusSettings.MaxVolume= 100;
+    StimulusSettings.MinVolume= 0;
+    StimulusSettings.RampNoiseBeg = true; %apply ramp at beginning of noise stimulus (signal will always apply)
+    StimulusSettings.RampNoiseEnd = true;
+    
     StimulusSettings.ITI = S.GUI.ITI;
 
     %% Generate pure tone signal
     sound = GenerateSineWave(SF, FreqTrials(iTrial), S.GUI.PureToneDuration);
     sound=[sound;sound];
+
+    %% set random numbers based on current time
+    StimulusSettings.RandomStream=rng('shuffle');
 
     %% Generate Upsweeps signal
     % GenerateSineSweep(samplingRate, startFreq, endFreq, duration)
@@ -141,7 +153,7 @@ for iTrial = 1:MaxTrials
     UpsweepSound = GenerateInterpolatedSignal(StimulusSettings);
 
     %% Generate noise signal
-    NoiseSound = GenerateWhiteNoise(SF, S.GUI.SoundDuration, 1, 1);
+    NoiseSound = GenerateNoise(StimulusSettings);
     %NoiseSound = [NoiseSound; NoiseSound];
 
     %Error message if SoundCal table doesn't exist
@@ -298,6 +310,7 @@ for iTrial = 1:MaxTrials
     S.GUI.ITI = TruncatedExponential(0.8, 1.5, 1); % Seconds after stimulus sampling for a response 0.8-1.5 sec TruncExp
     S.GUI.ITIPause1 = TruncatedExponential(0.8, 1.5, 1); %between pure tone and upsweep
     S.GUI.ITIPause2 = TruncatedExponential(0.8, 1.5, 1); %between upsweep and noise
+    S.GUI.CurrentFreq = FreqTrials(iTrial);
     HandlePauseCondition; % Checks to see if the protocol is paused. If so, waits until user resumes.
     if iTrial == MaxTrials
         BpodSystem.Status.BeingUsed = 0;
