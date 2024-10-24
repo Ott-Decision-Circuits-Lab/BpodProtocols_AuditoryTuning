@@ -59,7 +59,7 @@ S.GUI.PureToneDuration = 0.05;
 S.GUI.ITI = TruncatedExponential(0.8, 1.2, 1); % Seconds after stimulus sampling for a response 0.8-1.5 sec TruncExp
 S.GUI.CurrentFreq = 0;
 
-S.GUI.TrialsPerCondition = 1;
+S.GUI.TrialsPerCondition = 10;
 S.GUI.NoiseSound = 1; % if 1, plays a white noise pulse on error. if 0, no sound is played.
 S.GUIMeta.NoiseSound.Style = 'checkbox';
 
@@ -70,7 +70,7 @@ S.GUI.BorderStepFreq = 1000;
 
 S.GUI.MinVolume = 45;
 S.GUI.MaxVolume = 75;
-S.GUI.StepVolume = 15;
+S.GUI.StepVolume = 30;
 S.GUI.CurrentVolume = 0;
 
 S.GUIPanels.Sound = {'SoundDuration', 'ITI', 'TrialsPerCondition','NoiseSound'};
@@ -110,7 +110,7 @@ iPureTones = 0; %to skip trials in FreqVec that play noise or upsweep
 
 MaxTrials = length(TrialType);
 
-BpodSystem.Data.TrialTypes = []; % The trial type of each trial completed will be added here.
+BpodSystem.Data.TrialTypes = {}; % The trial type of each trial completed will be added here.
 BpodSystem.Data.Custom.Frequency = [];
 BpodSystem.Data.Custom.Volume = [];
 
@@ -300,7 +300,7 @@ for iTrial = 1:MaxTrials
         end
         BpodSystem.Data.Custom.Volume(iTrial) = VolTrials(iTrial);
         BpodSystem.Data.Settings(iTrial) = S.GUI; % Adds the settings used for the current trial to the Data struct (to be saved after the trial ends)
-        BpodSystem.Data.TrialTypes(iTrial) = TrialType(iTrial); % Adds the trial type of the current trial to data
+        BpodSystem.Data.TrialTypes{iTrial} = TrialType{iTrial}; % Adds the trial type of the current trial to data
         SaveBpodSessionData; % Saves the field BpodSystem.Data to the current data file
     end
     S.GUI.ITI = TruncatedExponential(0.8, 1.5, 1); % Seconds after stimulus sampling for a response 0.8-1.5 sec TruncExp

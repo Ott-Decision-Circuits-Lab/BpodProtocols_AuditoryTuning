@@ -25,7 +25,7 @@ HiFiPlayer.SamplingRate = 192000;
 HiFiPlayer.DigitalAttenuation_dB = -10; % Set to the same as DetectionConfidence
 
 %% load custom sound calibration file
-file_to_use =  'SoundCalibration_20241023_day13.mat';
+file_to_use =  'SoundCalibration.mat';
 BpodSystem.CalibrationTables.SoundCal = load(fullfile('C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files',file_to_use));
 BpodSystem.CalibrationTables.SoundCal=BpodSystem.CalibrationTables.SoundCal.SoundCal;
 SoundCal = BpodSystem.CalibrationTables.SoundCal;
@@ -69,12 +69,12 @@ saveas(gcf, fig_name_full, 'png');
 % which calibration methods to test?
 % newv ersion of GenerateInterpolatedSignal (backwards compatible) to
 % specify which method to use
-% test_calbration_methods = {'interpolate','linearfit','polyfit2','polyfit4'};
-test_calbration_methods = {'interpolate'};
-for k = 1:length(test_calbration_methods)
+% test_calibration_methods = {'interpolate','linearfit','polyfit2','polyfit4'};
+test_calibration_methods = {'interpolate'};
+for k = 1:length(test_calibration_methods)
 
     %general settings
-    StimulusSettings.CalibrationMethod = test_calbration_methods{k}; %NEW calibration method setting
+    StimulusSettings.CalibrationMethod = test_calibration_methods{k}; %NEW calibration method setting
 
     StimulusSettings.SamplingRate=192000;
     StimulusSettings.Ramp=.05;
@@ -93,13 +93,33 @@ for k = 1:length(test_calbration_methods)
     for freq = SoundCal.Table(:, 1)'
         sound = GenerateSineWave(StimulusSettings.SamplingRate, freq, StimulusSettings.SignalDuration);
         sound=[sound;sound];
-        toneAtt = interp1(SoundCal.Table(:,1), SoundCal.Table(:,2), freq, 'nearest');
-        sound(1,:)=sound(1,:).*toneAtt;
-        sound(2,:) = 0; %only left speaker playing
+        % Same is in Auditory Tuning from 24.10.2024
+        idx_toneAtt = find(round(SoundCal.Table(:,1))==freq);
+        if ~isempty(idx_toneAtt)
+            %if SoundCal has exact freq needed
+            idx_toneAtt =  find(round(SoundCal.Table(:,1))==freq);
+            %closest_freq = interp1(SoundCal(s).Table(:,1), SoundCal(s).Table(:,1), FreqTrials(iTrial), 'nearest');
+            toneAtt = SoundCal.Table(idx_toneAtt, 2);
+        else
+            toneAtt = interp1(SoundCal.Table(:,1), SoundCal.Table(:,2), freq, 'nearest');
+            disp("Interpolation")
+            if isnan(toneAtt)
+                fprintf("Error: Test frequency %d Hz is outside calibration range.\n", freq);
+                return
+            end
+        end
+        sound(1,:)=sound(1,:).*toneAtt; %should the two speakers dB be added?
+        sound(2,:) = zeros(1, length(sound)); %only left speaker playing
+        % New Envelope implementation only for pure tones
+        RampVec = 1/(StimulusSettings.SamplingRate*0.001):1/(StimulusSettings.SamplingRate*0.001):1;
+        Envelope = ones(length(sound),1); % This is the envelope
+        Envelope(1:length(RampVec)) = (RampVec);
+        Envelope(end-length(RampVec)+1:end) = fliplr(RampVec);
+        sound = sound.*Envelope';
         HiFiPlayer.load(1, sound); %only Left
-        % HiFi built-in envelope function comes after loading sound
-        Envelope = 1/(StimulusSettings.SamplingRate*0.001):1/(StimulusSettings.SamplingRate*0.001):1; % Define 1ms linear ramp envelope of amplitude coefficients, to apply at sound onset + in reverse at sound offset
-        HiFiPlayer.AMenvelope = Envelope;
+%         % HiFi built-in envelope function comes after loading sound
+%         Envelope = 1/(StimulusSettings.SamplingRate*0.001):1/(StimulusSettings.SamplingRate*0.001):1; % Define 1ms linear ramp envelope of amplitude coefficients, to apply at sound onset + in reverse at sound offset
+%         HiFiPlayer.AMenvelope = Envelope;
         HiFiPlayer.push();
         disp(strcat("Playing ", num2str(freq),  " Hz"))
         HiFiPlayer.play(1);
