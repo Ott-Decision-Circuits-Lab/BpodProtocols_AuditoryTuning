@@ -7,11 +7,12 @@
 % global BpodSystem
 
 %start up HiFi module and set general settings
-% needs cleared/restarted HiFi module
+% needs c
+% leared/restarted HiFi module
 SoundCal = SoundCalibration_Manual([500,20000],500,90,1,-10);
 
 %% save file
-file_name =  'SoundCalibration_20241023_day13.mat';
+file_name =  'SoundCalibration_20241212_0_oclock1500.mat';
 file_path = 'C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files';
 full_filename = fullfile(file_path,file_name);
 save(full_filename, "SoundCal");
@@ -48,8 +49,8 @@ l=legend({'interpolate','linear','polyfit2','polyfit4'})'; l.Box = 'off';
 
 %% Compare 2 Calibration Tables
 disp('new round')
-file_to_compare1 =  'SoundCalibration.mat';
-file_to_compare2 =  'SoundCalibration_Median_AttFactors_No_Extreme_Outliers_12days.mat';
+file_to_compare1 =  'SoundCalibration_Median_AttFactors_No_Extreme_Outliers_oclock.mat';
+file_to_compare2 =  'SoundCalibration_Median_AttFactors_No_Extreme_Outliers_0clocl_niabove1.mat';
 %file_to_compare3 =  'SoundCalibration20240827digAttminus10target90dBday6adjustedmic.mat';
 SoundCal_to_compare1 = load(fullfile('C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files',file_to_compare1));
 SoundCal_to_compare2 = load(fullfile('C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files',file_to_compare2));
@@ -62,7 +63,7 @@ hold on
 plot(SoundCal_to_compare2.SoundCal.Table(:,1),SoundCal_to_compare2.SoundCal.Table(:,2),'-og') %digAtt set before sf 30
 hold on
 %plot(SoundCal_to_compare3.SoundCal.Table(:,1),SoundCal_to_compare3.SoundCal.Table(:,2),'-om') %digAtt set after sf 30
-legend(file_to_compare1, file_to_compare2, file_to_compare3, 'Location', 'northwest');
+%legend(file_to_compare1, file_to_compare2, file_to_compare3, 'Location', 'northwest');
 fig_name_full = fullfile(file_path, 'soundcal_attFcompare');
 saveas(gcf, fig_name_full, 'png');
 %% Run tests
@@ -203,7 +204,7 @@ for k = 1:length(test_calibration_methods)
     for noiseVol = [45; 50; 55; 60]'
         StimulusSettings.RandomStream=rng('shuffle');
         StimulusSettings.NoiseVolume = noiseVol;
-        NoiseStream = GenerateNoiseplus9dB(StimulusSettings);
+        NoiseStream = GenerateNoiseplus7dB(StimulusSettings);
         HiFiPlayer.load(2,NoiseStream);
         HiFiPlayer.push();
         disp(strcat("Playing ", num2str(noiseVol),  " db"))

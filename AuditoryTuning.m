@@ -236,7 +236,7 @@ for iTrial = 1:MaxTrials
         disp("Upsweep")
     else
         %% Generate noise signal
-        NoiseSound = GenerateNoiseplus9dB(StimulusSettings); % GenerateNoiseplus9dB
+        NoiseSound = GenerateNoiseplus7dB(StimulusSettings); % GenerateNoiseplus9dB
         %NoiseSound = [NoiseSound; NoiseSound];
         H.load(1, NoiseSound);
         disp("Noise")

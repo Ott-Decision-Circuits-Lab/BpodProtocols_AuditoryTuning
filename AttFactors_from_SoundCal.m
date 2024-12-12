@@ -1,5 +1,5 @@
 
-directory = 'C:\Users\dariy\Desktop\SoundCalibrationBackUp\UltrasonicSpeakers\digAtt10_target90_10days';
+directory = 'C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files\1speakerbackup20240618\0clock';
 data_table = create_attenuation_table(directory);
 new_median_att_table = plot_mean_attenuation(data_table, directory);
 % %%
@@ -76,9 +76,13 @@ for i = 1:row
 
     % Find non-zero indices
     non_zero_indices = row_data{i} ~= 0;
+    row_data{i} = row_data{i}(non_zero_indices);
+
+    %Eliminate indices above 1.0 
+    row_data{i} = row_data{i}(row_data{i} <= 1.0);
 
     % Calculate the mean of non-zero values
-    row_data{i} = row_data{i}(non_zero_indices);
+    
     row_mean(i) = mean(row_data{i});
     row_std(i) = std(row_data{i});
     hold on
