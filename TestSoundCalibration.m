@@ -12,7 +12,7 @@
 SoundCal = SoundCalibration_Manual([500,20000],500,90,1,-10);
 
 %% save file
-file_name =  'SoundCalibration_20241212_0_oclock1500.mat';
+file_name =  'SoundCalibration_20241212_0_oclock2014.mat';
 file_path = 'C:\Users\BasicTraining\Documents\MATLAB\Bpod Local\Calibration Files';
 full_filename = fullfile(file_path,file_name);
 save(full_filename, "SoundCal");

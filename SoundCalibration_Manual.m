@@ -110,7 +110,13 @@ for s = 1:nSpeakers
 
             H.play(1);
             pause(toneDuration);
+           
             dbSPL_Measured = input(['Enter dB SPL measured > ']);
+            if isempty(dbSPL_Measured)
+                disp('Error: Invalid input. Please enter a numeric value for dB SPL.');
+                dbSPL_Measured = 'a';
+            end
+            %dbSPL_Measured = input(['Enter dB SPL measured > ']);
             if abs(dbSPL_Measured - dbSPL_Target) <= AcceptableDifference_dBSPL
                 ThisTable(m,1) = FrequencyVector(m);
                 ThisTable(m,2) = attFactor;
